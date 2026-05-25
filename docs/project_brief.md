@@ -4,7 +4,7 @@
 
 **RPG_prototype** is a survival RPG prototype centered on a group of survivors and their shelter. The player does not control a single hero in the field. Instead, the player represents the shelter itself: allocating resources, selecting squads, and absorbing outcomes back into the base.
 
-The repository is in a **documentation-first** phase. No engine, language, or runnable build is defined yet.
+The repository is in a **documentation-first** phase. Game design direction is set; **final PC stack is unresolved**. The likely first **executable** step is a lightweight browser prototype (see below)—not a committed production engine or language choice.
 
 ## Accepted player model
 
@@ -17,6 +17,18 @@ Field actions are performed by **NPC squads** chosen by the player. Expedition r
 > The previous “main hero + companions” field model is no longer the active direction.
 
 Do not treat a player-controlled field avatar plus companion party as current design.
+
+## Initial technical direction
+
+The first **executable** prototype is expected to be a **lightweight browser-based prototype** deployable through **GitHub Pages**.
+
+- This is **not** the final PC game stack.
+- **GitHub Pages** here means **static client-side hosting only**—no backend, accounts, cloud saves, online services, or server-side logic in scope for that path.
+- **Core / domain game logic** must stay **separate** from UI, rendering, and hosting so logic can be tested and later ported without rewriting rules inside the view layer.
+- **Python** is **not** selected for the first executable prototype. It may be considered **later** for PC-side development tools, simulations, balancing scripts, or support utilities.
+- **Termux** is **not** part of the initial development route.
+
+Implementation setup (Vite, TypeScript, workflows, `package.json`, Pages configuration) is **out of scope** until a dedicated work package—this section records direction only.
 
 ## Core gameplay loop (target)
 
@@ -49,13 +61,17 @@ This is **planned for v0.1**, not implemented. It names the first concrete scena
 
 Intentionally **not** in the current prototype path (backlog / later):
 
+- Final PC engine / production stack (unresolved)
+- Python as the **first** runnable game stack (PC-side tooling may use Python later)
+- Termux as a deployment target
+- Backend, accounts, cloud saves, and online services for the static web prototype
 - Full campaign and faction systems
 - Procedural generation (maps, loot tables, etc.)
 - Full combat system and skill lists
 - 36-subclass (or similar) character taxonomy as implementation scope
 - Mobile UI, complex inventory, construction, economy
 - Deep NPC relationship simulation
-- GameCore, CLI, and source layout (until stack decisions)
+- GameCore, CLI, and full source layout (until further stack decisions)
 
 Ideas may be noted elsewhere later; they are **not** commitments for v0.1.
 
@@ -63,10 +79,12 @@ Ideas may be noted elsewhere later; they are **not** commitments for v0.1.
 
 When implementation begins, the following remain **out of scope** for the first steps:
 
-- Choosing engine, language, or framework in this documentation pass
+- Choosing **final PC** engine or production stack in documentation-only work
+- Configuring GitHub Pages, CI, or a build toolchain in WP-00
 - Implementing GameCore or CLI
 - Designing or coding full combat
 - Implementing procedural generation
 - Publishing a full GDD
 - Building factions, full economy, construction, or relationship sims
-- Reintroducing the main-hero field model
+- Reintroducing the main-hero field model or **Termux** as an initial target
+- Using **Python** as the first executable game prototype
