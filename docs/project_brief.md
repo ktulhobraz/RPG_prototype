@@ -2,89 +2,77 @@
 
 ## Current project summary
 
-**RPG_prototype** is a survival RPG prototype centered on a group of survivors and their shelter. The player does not control a single hero in the field. Instead, the player represents the shelter itself: allocating resources, selecting squads, and absorbing outcomes back into the base.
+**RPG_prototype** is a **party-based dungeon crawler** set in a grim low-fantasy world.
+The player leads a warband of four heroes into a dungeon, room by room, fighting on a tactical
+grid and pulling out with whatever loot they survive to carry.
 
-The repository is in a **documentation-first** phase. Game design direction is set; **final PC stack is unresolved**. The likely first **executable** step is a lightweight browser prototype (see below)—not a committed production engine or language choice.
+The first **executable** prototype is a static, no-build web page playable **from a mobile browser**
+and deployable through GitHub Pages.
 
-## Accepted player model
+## Superseded direction
 
-> The player is a meta-character of the shelter. The player does not personally go on expeditions. Instead, the player manages the shelter, selects NPC squads, makes strategic decisions, and receives consequences back into the shelter.
+> The previous **survival / shelter meta-character** direction — where the player represented a
+> shelter and dispatched NPC squads on expeditions — is no longer the active design.
 
-Field actions are performed by **NPC squads** chosen by the player. Expedition results (loot, injuries, morale, etc.) feed back into shelter state.
+Decisions D-01, D-02 and D-04 are retained in `docs/decisions.md` for history but marked
+**superseded**. Do not treat shelter management, NPC-squad dispatch, or the pharmacy scavenging
+vertical slice as current scope.
 
-### Superseded model
+The even earlier "main hero + companions" note is also obsolete for a different reason: this project
+now has a **party of four player-controlled heroes** with no single protagonist.
 
-> The previous “main hero + companions” field model is no longer the active direction.
+## Genre and reference shape
 
-Do not treat a player-controlled field avatar plus companion party as current design.
+Tabletop-dungeon-crawler shape: top-down, tile-based dungeon assembled from a deck of room tiles,
+a fixed party of four, turn-based combat on a small grid, event rolls between rooms.
 
-## Initial technical direction
+1. **Party select** — pick four heroes from the roster.
+2. **Explore** — advance through the dungeon; each step reveals the next tile from the deck.
+   Every exploration turn rolls for an unexpected event, so stalling is not free.
+3. **Tile resolution** — empty / monsters / trap / treasure / objective.
+4. **Combat** — initiative order, movement, melee, ranged, spells on the tile grid.
+5. **Objective room** — boss fight, loot, end of the delve.
+6. **Outcome** — result screen, experience and gold, progress saved locally.
 
-The first **executable** prototype is expected to be a **lightweight browser-based prototype** deployable through **GitHub Pages**.
+## Two rule systems
 
-- This is **not** the final PC game stack.
-- **GitHub Pages** here means **static client-side hosting only**—no backend, accounts, cloud saves, online services, or server-side logic in scope for that path.
-- **Core / domain game logic** must stay **separate** from UI, rendering, and hosting so logic can be tested and later ported without rewriting rules inside the view layer.
-- **Python** is **not** selected for the first executable prototype. It may be considered **later** for PC-side development tools, simulations, balancing scripts, or support utilities.
-- **Termux** is **not** part of the initial development route.
+The prototype ships **two interchangeable rule systems**, selected in settings:
 
-Implementation setup (Vite, TypeScript, workflows, `package.json`, Pages configuration) is **out of scope** until a dedicated work package—this section records direction only.
+- **`d6`** — fast tabletop-style resolution: to-hit cross-reference, `d6 + Strength` damage,
+  Toughness subtracted, Wounds removed. **Default and balance reference.**
+- **`d100`** — percentile resolution with success levels, advantage and critical hits on doubles.
+  Functional but **experimental** until its own balance pass.
 
-## Core gameplay loop (target)
+Creature statistics are authored **once** in the canonical `d6` scale. The `d100` profile is
+**derived deterministically** from it, with optional per-creature overrides. Content is written once;
+only the resolver differs.
 
-At a high level, the intended loop is:
+## v0.1 target — vertical slice
 
-1. **Shelter** — prepare, assign roles, choose who goes out.
-2. **Expedition** — selected NPC squad acts in the field (details TBD).
-3. **Return** — consequences update shelter state; player plans the next cycle.
+Prove one complete delve end-to-end on a phone. Scope ceiling:
 
-The first planned playable prototype should exercise **one minimal shelter-to-expedition loop**, not a full campaign or economy.
+- 1 dungeon, 4 playable heroes, 5-6 monster types
+- 8-10 room tiles, ~12 events, ~15 items
+- Both rule systems playable
 
-## Current v0.1 target
+## Technical direction
 
-**v0.1** means: prove the shelter meta-character loop end-to-end once, with minimal systems and meaningful choices—not a feature-complete game.
+- **Static client-side only.** No backend, accounts, cloud saves, or online services.
+- **Vanilla ES modules, no bundler.** Files are served as authored; `package.json` exists only to
+  enable Node's built-in test runner and declares **zero dependencies**.
+- **Core logic separate from UI.** `src/core/**` is pure: no `document`, no `window`,
+  no `localStorage`, no `Math.random()`. All randomness flows through an injected seeded PRNG.
+- **Mobile-first, touch-only.** Portrait layout, tap-to-move and tap-to-target, no hover,
+  no drag, no keyboard dependency.
+- **Content separate from engine.** Every name, description and stat block lives in `src/data/*.json`.
+  The engine contains no setting-specific vocabulary, so the setting can be re-skinned by
+  swapping data files. No third-party art, fonts or logos are used.
 
-Planned focus:
+## Deferred / out of scope
 
-- One shelter management layer (minimal).
-- Squad selection for a single expedition type.
-- One encounter resolution path (combat and skills **not** fully designed here).
-- Clear feedback from expedition back to shelter.
-
-## Minimal “Pharmacy” vertical slice (future)
-
-The initial vertical slice is a **Pharmacy scavenging encounter**: survivors send a squad to scavenge a pharmacy; the player prepares at the shelter and commits a squad; outcomes return to the base.
-
-This is **planned for v0.1**, not implemented. It names the first concrete scenario to build toward once implementation starts—it is not active scope for documentation-only work.
-
-## Deferred ideas / future scope
-
-Intentionally **not** in the current prototype path (backlog / later):
-
-- Final PC engine / production stack (unresolved)
-- Python as the **first** runnable game stack (PC-side tooling may use Python later)
-- Termux as a deployment target
-- Backend, accounts, cloud saves, and online services for the static web prototype
-- Full campaign and faction systems
-- Procedural generation (maps, loot tables, etc.)
-- Full combat system and skill lists
-- 36-subclass (or similar) character taxonomy as implementation scope
-- Mobile UI, complex inventory, construction, economy
-- Deep NPC relationship simulation
-- GameCore, CLI, and full source layout (until further stack decisions)
-
-Ideas may be noted elsewhere later; they are **not** commitments for v0.1.
-
-## Explicit non-goals (start of development)
-
-When implementation begins, the following remain **out of scope** for the first steps:
-
-- Choosing **final PC** engine or production stack in documentation-only work
-- Configuring GitHub Pages, CI, or a build toolchain in WP-00
-- Implementing GameCore or CLI
-- Designing or coding full combat
-- Implementing procedural generation
-- Publishing a full GDD
-- Building factions, full economy, construction, or relationship sims
-- Reintroducing the main-hero field model or **Termux** as an initial target
-- Using **Python** as the first executable game prototype
+- Settlement or hub between delves, campaign structure, factions, economy
+- Procedural generation (the tile deck is authored, not generated)
+- Crafting, complex inventory management, deep NPC relationship simulation
+- Final PC engine or production stack (still unresolved)
+- Backend, accounts, cloud saves, online play
+- Shelter management and NPC-squad expeditions (superseded, see above)

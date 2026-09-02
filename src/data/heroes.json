@@ -1,0 +1,62 @@
+[
+  {
+    "id": "warrior",
+    "name": "Sellsword",
+    "role": "melee",
+    "glyph": "W",
+    "blurb": "Plate, a heavy blade, and no interest in subtlety.",
+    "profile": { "ws": 4, "bs": 2, "str": 4, "tou": 4, "wounds": 14, "init": 3, "attacks": 1, "move": 4 },
+    "abilities": ["cleave"],
+    "startingItems": ["heavy_blade", "shield"]
+  },
+  {
+    "id": "slayer",
+    "name": "Oathbound Slayer",
+    "role": "melee",
+    "glyph": "S",
+    "blurb": "Seeks a worthy death and keeps failing to find one.",
+    "profile": { "ws": 5, "bs": 2, "str": 4, "tou": 5, "wounds": 12, "init": 2, "attacks": 2, "move": 3 },
+    "abilities": ["frenzy"],
+    "startingItems": ["twin_axes"]
+  },
+  {
+    "id": "ranger",
+    "name": "Forest Ranger",
+    "role": "ranged",
+    "glyph": "R",
+    "blurb": "Prefers a fight settled before it reaches arm's length.",
+    "profile": { "ws": 3, "bs": 5, "str": 3, "tou": 3, "wounds": 10, "init": 5, "attacks": 1, "move": 5 },
+    "abilities": ["aimed_shot"],
+    "startingItems": ["longbow", "keen_dagger"]
+  },
+  {
+    "id": "scholar",
+    "name": "Grey Scholar",
+    "role": "caster",
+    "glyph": "M",
+    "blurb": "Channels power that visibly dislikes being channelled.",
+    "profile": { "ws": 2, "bs": 3, "str": 2, "tou": 3, "wounds": 8, "init": 4, "attacks": 1, "move": 4 },
+    "abilities": ["bolt", "mend"],
+    "startingItems": ["staff"]
+  },
+  {
+    "id": "zealot",
+    "name": "Flagellant",
+    "role": "melee",
+    "glyph": "Z",
+    "blurb": "Pain is a sacrament, and the sacrament is generous.",
+    "profile": { "ws": 4, "bs": 2, "str": 3, "tou": 4, "wounds": 11, "init": 4, "attacks": 2, "move": 4 },
+    "abilities": ["fervour"],
+    "startingItems": ["flail"]
+  },
+  {
+    "id": "thief",
+    "name": "Cutpurse",
+    "role": "ranged",
+    "glyph": "T",
+    "blurb": "Finds the traps, occasionally before stepping on them.",
+    "profile": { "ws": 3, "bs": 4, "str": 3, "tou": 3, "wounds": 9, "init": 6, "attacks": 1, "move": 5 },
+    "abilities": ["backstab", "keen_eye"],
+    "startingItems": ["throwing_knives", "lockpicks"]
+  }
+]
