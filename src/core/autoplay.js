@@ -1,20 +1,76 @@
 // @ts-check
 /**
- * A scripted hero controller.
+ * A scripted party controller: fights competently but not optimally (attack what's adjacent,
+ * otherwise close on the weakest enemy), and explores by walking to whatever's unvisited, then
+ * the door once nothing's left or the room's one ambush has already fired.
  *
- * It exists for balance simulation, not for the player: running thousands of delves headlessly
- * is the only honest way to compare two rule systems. It plays competently but not optimally —
- * attack what is adjacent, otherwise close on the weakest reachable enemy.
+ * It exists for balance simulation, not for the player: running thousands of delves headlessly,
+ * through the same `state.js` calls the real UI makes, is the only honest way to catch a balance
+ * regression before someone plays into it. See docs/design/balance.md.
  */
 
 import {
   activeActor, attackOptions, movementOptions, moveTo, attack, defend,
   abilityOptions, useAbility,
 } from './combat.js';
-import { distance } from './grid.js';
-import { endHeroTurn } from './state.js';
+import { distance, floorCells, findPath } from './grid.js';
+import { findDoor, stepOptions } from './exploration.js';
+import { currentRoom } from './dungeon.js';
+import { endHeroTurn, step } from './state.js';
 
 /** @typedef {import('./state.js').Session} Session */
+
+/**
+ * Find the shortest path to the nearest cell not yet visited this room, by actual path length
+ * (not raw distance, since walls matter) — ties broken by a stable coordinate order so the same
+ * seed explores the same way every time.
+ *
+ * @param {import('./grid.js').Tile} tile
+ * @param {import('./exploration.js').Fog} fog
+ * @returns {{x: number, y: number}[] | null}
+ */
+function pathToNearestUnvisited(tile, fog) {
+  const candidates = floorCells(tile)
+    .filter((c) => !fog.visitedCells.has(`${c.x},${c.y}`))
+    .sort((a, b) => a.y - b.y || a.x - b.x);
+
+  let best = null;
+  for (const cell of candidates) {
+    const path = findPath(tile, fog.partyCell, cell);
+    if (path && (!best || path.length < best.length)) best = path;
+  }
+  return best;
+}
+
+/**
+ * Walk the current room one cell at a time: head for whatever hasn't been seen yet while the
+ * room's one ambush is still available, otherwise head straight for the door. Exercises the
+ * exact same `state.step` the real UI calls — coverage of the walking code path, not a shortcut
+ * around it.
+ *
+ * @param {Session} session
+ */
+export function autoExplore(session) {
+  const room = currentRoom(session.dungeon);
+  const fog = room?.fog;
+  if (!fog) return session; // the entrance/objective have no walkable fog
+
+  if (!fog.ambushSpent) {
+    const path = pathToNearestUnvisited(room.tile, fog);
+    if (path) return step(session, path[0]);
+  }
+
+  const door = findDoor(room.tile);
+  if (fog.partyCell.x === door.x && fog.partyCell.y === door.y) {
+    // Already standing on the door — e.g. a forced ambush (a "spawn" event) resolved before the
+    // party ever took a single exploration step. findPath(door, door) has nothing to return, so
+    // step off it first; the next call paths back deliberately, which is what triggers "exit."
+    const options = stepOptions(room.tile, fog);
+    return options.length ? step(session, options[0]) : session;
+  }
+  const path = findPath(room.tile, fog.partyCell, door);
+  return path && path.length ? step(session, path[0]) : session;
+}
 
 /**
  * Play one hero turn.
@@ -80,16 +136,20 @@ export function takeHeroTurn(session) {
 /**
  * Play a session to completion.
  * @param {Session} session
- * @param {(s: Session) => Session} step  Usually `explore`/`acknowledge` from state.js.
  * @param {object} handlers
+ * @param {(s: Session) => Session} handlers.acknowledge  Usually `acknowledge` from state.js.
  * @returns {Session}
  */
 export function playSession(session, handlers) {
   let guard = 0;
-  while (session.phase !== 'victory' && session.phase !== 'defeat' && guard++ < 5000) {
+  // A cell-by-cell walk takes more calls per room than the old single "press on" advance did,
+  // so the ceiling is higher than 5000 might suggest is needed — verified empirically against
+  // the "every delve terminates" test rather than picked in the abstract.
+  const LIMIT = 20000;
+  while (session.phase !== 'victory' && session.phase !== 'defeat' && guard++ < LIMIT) {
     if (session.phase === 'combat') takeHeroTurn(session);
     else if (session.phase === 'event' || session.phase === 'loot') handlers.acknowledge(session);
-    else handlers.explore(session);
+    else autoExplore(session);
   }
   return session;
 }

@@ -8,7 +8,7 @@
  * Usage: node tests/sim.js [runs]
  */
 
-import { startSession, explore, acknowledge } from '../src/core/state.js';
+import { startSession, acknowledge } from '../src/core/state.js';
 import { playSession } from '../src/core/autoplay.js';
 import { loadTestContent, DEFAULT_PARTY } from './helpers.js';
 
@@ -27,7 +27,7 @@ export function simulate(count, party = DEFAULT_PARTY) {
   for (let i = 0; i < count; i++) {
     const content = loadTestContent();
     const session = startSession({ content, heroIds: party, seed: `sim-${i}` });
-    playSession(session, { explore, acknowledge });
+    playSession(session, { acknowledge });
 
     if (session.phase === 'victory') wins++;
     totalRooms += session.dungeon.current + 1;

@@ -41,6 +41,27 @@ export const MAX_RANGE = 8;
 const occupied = (actors) =>
   new Set(actors.filter((a) => a.alive).map((a) => `${a.x},${a.y}`));
 
+/**
+ * Nearest free floor cells to an arbitrary point, closest first. Exploration tracks the whole
+ * party as a single token (one shared cell), so an in-place ambush needs to spread the heroes
+ * out from that one cell into distinct cells before combat can place anyone else — this is that
+ * spread, generic enough to anchor anywhere rather than only at a room's door like `entryCells`.
+ *
+ * @param {Tile} tile
+ * @param {{x: number, y: number}} anchor
+ * @param {number} count
+ * @param {Set<string>} [occupiedCells]
+ * @returns {{x: number, y: number}[]}
+ */
+export function fanOutCells(tile, anchor, count, occupiedCells = new Set()) {
+  return floorCells(tile)
+    .filter((c) => !occupiedCells.has(`${c.x},${c.y}`))
+    .map((c) => ({ c, d: distance(anchor, c) }))
+    .sort((a, b) => a.d - b.d || a.c.y - b.c.y || a.c.x - b.c.x)
+    .map((entry) => entry.c)
+    .slice(0, count);
+}
+
 /** Monsters ambushing an already-standing party keep their distance, at least this many steps. */
 export const AMBUSH_MIN_DISTANCE = 2;
 
@@ -94,6 +115,14 @@ export function createCombat({ tile, party, spawns, monsterData, rules, rng, pla
 
   if (placement === 'entry') {
     entryCells(tile, heroes.length, 'near').forEach((cell, i) => {
+      heroes[i].x = cell.x;
+      heroes[i].y = cell.y;
+    });
+  } else if (heroes.length) {
+    // 'inPlace': the caller sets every hero to the same shared exploration cell, so they need
+    // spreading into distinct cells the same way a fresh room entry always has distinct cells —
+    // anchored at that shared cell rather than the door.
+    fanOutCells(tile, heroes[0], heroes.length).forEach((cell, i) => {
       heroes[i].x = cell.x;
       heroes[i].y = cell.y;
     });

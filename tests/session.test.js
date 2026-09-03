@@ -1,8 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRng } from '../src/core/rng.js';
-import { createDungeon, isTileConnected, entryCells, advance } from '../src/core/dungeon.js';
-import { startSession, explore, acknowledge, restoreSession, shortRest } from '../src/core/state.js';
+import {
+  createDungeon, isTileConnected, entryCells, advance, currentRoom,
+} from '../src/core/dungeon.js';
+import { startSession, acknowledge, restoreSession, shortRest, step } from '../src/core/state.js';
+import { stepOptions } from '../src/core/exploration.js';
 import { playSession } from '../src/core/autoplay.js';
 import { serialize, save, load, createMemoryStorage, createNullStorage } from '../src/core/save.js';
 import { validateContent } from '../src/core/content.js';
@@ -58,17 +61,34 @@ test('a dungeon always ends in a reachable objective room', () => {
   }
 });
 
-test('the party cannot walk past monsters it has not cleared', () => {
+test('a middle room starts unblocked, but an active ambush gates the door', () => {
+  // Middle rooms no longer pre-roll a fight (that's now a per-step ambush chance while walking),
+  // so nothing blocks the door a priori — `cleared` only drops while a fight is actually live.
   const dungeon = createDungeon({
     rooms: content.rooms, monsters: content.monsters, corruptions: content.corruptions,
     rng: createRng('gate'), depth: 5, partySize: 4,
   });
-  const fight = dungeon.rooms.findIndex((r) => !r.cleared);
-  assert.ok(fight > 0, 'expected at least one uncleared room');
-  dungeon.current = fight;
-  assert.equal(advance(dungeon), false, 'an uncleared room blocks progress');
-  dungeon.rooms[fight].cleared = true;
-  assert.equal(advance(dungeon), true);
+  const middleIndex = 1;
+  assert.equal(dungeon.rooms[middleIndex].cleared, true, 'a middle room starts unblocked');
+
+  dungeon.current = middleIndex;
+  dungeon.rooms[middleIndex].cleared = false; // simulates state.js's spawnAmbush mid-fight
+  assert.equal(advance(dungeon), false, 'an active ambush blocks the door');
+  dungeon.rooms[middleIndex].cleared = true; // the fight resolves
+  assert.equal(advance(dungeon), true, 'clearing it lets the party through');
+});
+
+test('the objective room can never be advanced past, cleared or not', () => {
+  const dungeon = createDungeon({
+    rooms: content.rooms, monsters: content.monsters, corruptions: content.corruptions,
+    rng: createRng('objective-gate'), depth: 5, partySize: 4,
+  });
+  const last = dungeon.rooms.length - 1;
+  dungeon.current = last;
+  assert.equal(dungeon.rooms[last].cleared, false, 'the boss room starts uncleared');
+  assert.equal(advance(dungeon), false, 'there is nothing beyond the objective');
+  dungeon.rooms[last].cleared = true;
+  assert.equal(advance(dungeon), false, 'still nothing beyond it, even once the boss falls');
 });
 
 test('entry cells are distinct, passable and deterministic', () => {
@@ -88,7 +108,7 @@ test('entry cells are distinct, passable and deterministic', () => {
 test('the same seed replays the same delve exactly', () => {
   const run = () => {
     const session = startSession({ content: loadTestContent(), heroIds: DEFAULT_PARTY, seed: 'replay' });
-    playSession(session, { explore, acknowledge });
+    playSession(session, { acknowledge });
     return {
       phase: session.phase,
       gold: session.gold,
@@ -144,6 +164,45 @@ test('a delve survives a save and reload round trip', () => {
     session.dungeon.rooms.map((r) => r.tile.id),
     'the same dungeon comes back',
   );
+  assert.deepEqual(restored.dungeon.corruption, session.dungeon.corruption,
+    'corruption is a mid-delve constant, restored verbatim, never re-rolled');
+});
+
+test('mid-exploration position survives a save and reload, not just mid-combat', () => {
+  const storage = createMemoryStorage();
+
+  // A step can (rarely) land on an ambush or content instead of a plain move; search a few
+  // seeds for one that gives a plain move, rather than hard-coding a seed found by hand.
+  let session = null;
+  let target = null;
+  for (let i = 0; i < 50 && !session; i++) {
+    const candidate = startSession({
+      content: loadTestContent(), heroIds: DEFAULT_PARTY, seed: `walk-persist-${i}`,
+    });
+    const room = currentRoom(candidate.dungeon);
+    const cell = stepOptions(room.tile, room.fog)[0];
+    step(candidate, cell);
+    if (candidate.phase === 'explore' && !candidate.pending) {
+      session = candidate;
+      target = cell;
+    }
+  }
+  assert.ok(session, 'expected at least one seed to produce a plain exploration move');
+
+  const beforePos = { ...currentRoom(session.dungeon).fog.partyCell };
+  const beforeVisited = [...currentRoom(session.dungeon).fog.visitedCells].sort();
+  assert.deepEqual(beforePos, target, 'the party actually moved before saving');
+
+  assert.equal(save(storage, session), true);
+  const restored = restoreSession(load(storage), loadTestContent());
+
+  assert.ok(restored, 'the save should reload');
+  assert.equal(restored.phase, 'explore');
+  const restoredRoom = currentRoom(restored.dungeon);
+  assert.ok(restoredRoom.fog, 'fog must survive the round trip');
+  assert.deepEqual(restoredRoom.fog.partyCell, beforePos);
+  assert.deepEqual([...restoredRoom.fog.visitedCells].sort(), beforeVisited);
+  assert.equal(restoredRoom.fog.ambushSpent, currentRoom(session.dungeon).fog.ambushSpent);
 });
 
 test('blocked storage disables saving without breaking the game', () => {
@@ -153,7 +212,7 @@ test('blocked storage disables saving without breaking the game', () => {
   assert.equal(save(storage, session), false, 'saving reports failure rather than throwing');
   assert.equal(load(storage), null);
   // The delve still plays to completion.
-  playSession(session, { explore, acknowledge });
+  playSession(session, { acknowledge });
   assert.ok(['victory', 'defeat'].includes(session.phase));
 });
 
@@ -178,7 +237,7 @@ test('serialize keeps a save small and free of engine objects', () => {
 test('every delve terminates in victory or defeat', () => {
   for (let i = 0; i < 40; i++) {
     const session = startSession({ content: loadTestContent(), heroIds: DEFAULT_PARTY, seed: `end-${i}` });
-    playSession(session, { explore, acknowledge });
+    playSession(session, { acknowledge });
     assert.ok(
       session.phase === 'victory' || session.phase === 'defeat',
       `seed end-${i} stalled in phase ${session.phase}`,

@@ -5,6 +5,7 @@ import { RULES } from '../src/core/rules/index.js';
 import { createActor } from '../src/core/entities.js';
 import { distance } from '../src/core/grid.js';
 import { createCombat, ambushCells, AMBUSH_MIN_DISTANCE, activeActor } from '../src/core/combat.js';
+import { floorCells } from '../src/core/grid.js';
 import { loadTestContent } from './helpers.js';
 
 const content = loadTestContent();
@@ -66,21 +67,25 @@ test("createCombat placement:'inPlace' leaves heroes exactly where they stood", 
     'an in-place ambush must not spawn a monster already adjacent to the party');
 });
 
-test("createCombat placement:'inPlace' keeps every hero's exact starting cell, not just one", () => {
+test("createCombat placement:'inPlace' fans a party sharing one cell into distinct cells", () => {
+  // Exploration tracks the whole party as a single token, so every hero arrives here on the
+  // exact same cell — 'inPlace' must spread them out rather than stacking them in combat.
+  // (A real fog.partyCell is always a floor cell; picked from the tile rather than guessed,
+  // since this tile has interior pillars and a hardcoded coordinate could land on one.)
+  const shared = floorCells(middleTile)[0];
   const party = content.heroes.slice(0, 3).map((data, i) =>
     createActor(data, RULES, { side: 'hero', id: `h${i}` }));
-  const positions = [{ x: 1, y: 1 }, { x: 2, y: 1 }, { x: 1, y: 3 }];
-  party.forEach((hero, i) => { hero.x = positions[i].x; hero.y = positions[i].y; });
+  party.forEach((hero) => { hero.x = shared.x; hero.y = shared.y; });
 
   createCombat({
     tile: middleTile, party, spawns: [{ id: content.monsters[0].id, count: 2 }],
     monsterData: content.monsters, rules: RULES, rng: createRng('multi'), placement: 'inPlace',
   });
 
-  party.forEach((hero, i) => {
-    assert.equal(hero.x, positions[i].x);
-    assert.equal(hero.y, positions[i].y);
-  });
+  const cells = new Set(party.map((h) => `${h.x},${h.y}`));
+  assert.equal(cells.size, party.length, 'every hero must end up on a distinct cell');
+  assert.equal(party[0].x, shared.x, 'the first hero anchors the fan-out at the shared cell');
+  assert.equal(party[0].y, shared.y);
 });
 
 test('an in-place combat still resolves initiative and starts with the usual log line', () => {
