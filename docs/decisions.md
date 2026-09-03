@@ -30,6 +30,7 @@ Superseded entries are kept, not deleted, so the history of direction changes st
 | D-30 | **Loot first enters a party stash; assignment to a hero is explicit** | Found equipment is no longer auto-routed by role. Assigning it uses the existing equipment modifier rules on that hero |
 | D-31 | **Entrance and exit are separate** | Authored `+` remains the room entrance. Each explored room gets a seeded runtime exit on a distant passable cell; the exit itself cannot trigger trap/content/ambush |
 | D-32 | **Passive rest happens at the room exit** | Each injured living hero heals `d6 + (base Toughness - 3)`, minimum 1. Equipment Toughness does not modify recovery |
+| D-33 | **Generated prototype art is split by UI purpose**, not one universal atlas | Portraits serve cards/details; compact hero/monster tokens serve the board; terrain and item art use separate row atlases. Unmatched content keeps its glyph instead of being renamed to fit available art |
 
 ## Superseded
 
