@@ -1,7 +1,7 @@
 /* Generated prototype art atlas. One WebP, 8 columns x 6 rows. */
 .sprite {
   display: inline-block;
-  background-image: url('../assets/game-atlas.webp');
+  background-image: url('../assets/game-atlas-v2.webp');
   background-repeat: no-repeat;
   background-size: 800% 600%;
   background-position: var(--sprite-x, 0%) var(--sprite-y, 0%);
