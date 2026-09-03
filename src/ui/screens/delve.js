@@ -5,6 +5,7 @@ import { el } from '../dom.js';
 import { renderBoard } from '../board.js';
 import { renderParty, renderLog } from '../hud.js';
 import { heroDetailsModal, stashModal } from '../party_details.js';
+import { spriteNode, uiSprite } from '../sprites.js';
 import { currentRoom } from '../../core/dungeon.js';
 import { activeActor, attackOptions, movementOptions, abilityOptions } from '../../core/combat.js';
 import { abilitiesOf, usesRemaining } from '../../core/abilities.js';
@@ -21,9 +22,14 @@ export function delveScreen({ session, pendingAbility, panel, actions }) {
     ]),
     el('button.inventory-button', {
       type: 'button',
-      text: `Party inventory (${session.stash.length})`,
+      'aria-label': `Open party inventory, ${session.stash.length} items`,
       onClick: actions.openStash,
-    }),
+    }, [
+      el('span.icon-label', {}, [
+        spriteNode(uiSprite('inventory')),
+        el('span', { text: `Party inventory (${session.stash.length})` }),
+      ]),
+    ]),
   ]);
   const body = exploreBody(session, actions);
   if (session.phase === 'combat' && session.combat) {

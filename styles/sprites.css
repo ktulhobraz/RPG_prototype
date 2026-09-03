@@ -1,0 +1,88 @@
+/* Generated prototype art atlas. One WebP, 8 columns x 6 rows. */
+.sprite {
+  display: inline-block;
+  background-image: url('../assets/game-atlas.webp');
+  background-repeat: no-repeat;
+  background-size: 800% 600%;
+  background-position: var(--sprite-x, 0%) var(--sprite-y, 0%);
+  pointer-events: none;
+  flex: none;
+}
+
+.cell { overflow: hidden; }
+.cell .terrain-sprite {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  border-radius: inherit;
+}
+.cell .actor-sprite {
+  position: absolute;
+  inset: 2px;
+  width: calc(100% - 4px);
+  height: calc(100% - 4px);
+  z-index: 2;
+  filter: drop-shadow(0 1px 1px #000a);
+}
+.cell .glyph { z-index: 3; }
+.cell .bar { z-index: 4; }
+.cell .exit-mark, .cell .sense-mark { z-index: 3; text-shadow: 0 1px 2px #000; }
+.cell.reachable { border-color: #75a762; box-shadow: 0 0 0 2px #75a762aa inset; }
+.cell.targetable { border-color: #dd7650; box-shadow: 0 0 0 2px #dd7650aa inset; }
+.cell.healable { border-color: #75b5d8; box-shadow: 0 0 0 2px #75b5d8aa inset; }
+.cell.active { box-shadow: 0 0 0 2px var(--focus) inset; }
+
+.hero-avatar .sprite,
+.roster-item .mark .sprite {
+  width: 100%;
+  height: 100%;
+}
+
+.hero-avatar {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #171310;
+}
+
+.roster-item .mark {
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  overflow: hidden;
+  background: #171310;
+}
+
+.character-glyph {
+  overflow: hidden;
+  padding: 0;
+  background: #171310;
+}
+.character-glyph .sprite { width: 100%; height: 100%; }
+
+.inventory-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.inventory-item-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  background-color: #171310;
+  border: 1px solid var(--line);
+}
+.inventory-item-copy { min-width: 0; }
+
+.icon-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.icon-label .sprite { width: 24px; height: 24px; }
+
+@media (min-width: 420px) {
+  .inventory-item-icon { width: 48px; height: 48px; }
+}

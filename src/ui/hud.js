@@ -3,6 +3,7 @@
 
 import { el, woundClass } from './dom.js';
 import { abilitiesOf, usesRemaining } from '../core/abilities.js';
+import { heroSprite, spriteNode } from './sprites.js';
 
 /** @typedef {import('../core/entities.js').Actor} Actor */
 
@@ -29,13 +30,14 @@ export function renderParty(party, active, onHero) {
       }),
     ]);
 
+    const portrait = spriteNode(heroSprite(hero.dataId), 'hero-portrait');
     return el('div', { class: classes.join(' ') }, [
       el('div.hero-card-main', {}, [
         el('button.hero-avatar', {
-          type: 'button', text: hero.glyph,
+          type: 'button',
           'aria-label': `Open ${hero.name} character sheet and inventory`,
           onClick: onHero ? () => onHero(hero.id) : undefined,
-        }),
+        }, [portrait ?? el('span', { text: hero.glyph })]),
         el('div.hero-card-copy', {}, [
           el('div.name', {}, [
             el('span', { text: hero.name }),

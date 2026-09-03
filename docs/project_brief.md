@@ -76,6 +76,9 @@ Prove one complete delve end-to-end on a phone. Scope ceiling:
 - **Mobile-first, touch-only.** Portrait layout, tap-to-move and tap-to-target, no hover,
   no drag, no keyboard dependency. Party-character and inventory views use touch-friendly modal
   overlays rather than introducing a separate navigation framework.
+- **Generated prototype art is UI-only.** The current tiles, portraits and item icons are packed into
+  `assets/game-atlas.webp` and selected by `src/ui/sprites.js`. Missing semantic matches deliberately
+  fall back to the existing glyphs instead of changing content or rules to fit an image.
 - **Content separate from engine.** Every name, description and stat block lives in `src/data/*.json`.
   Exploration rooms and battlefields are authored data; the engine contains no setting-specific
   vocabulary. No third-party art, fonts or logos are used.

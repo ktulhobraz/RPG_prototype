@@ -3,6 +3,7 @@
 
 import { el } from './dom.js';
 import { abilitiesOf, usesRemaining } from '../core/abilities.js';
+import { heroSprite, itemSprite, spriteNode } from './sprites.js';
 
 const STAT_ROWS = [
   ['ws', 'WS'], ['bs', 'BS'], ['str', 'STR'], ['tou', 'TOU'],
@@ -24,10 +25,16 @@ function itemMeta(item) {
 /** @param {any[]} items */
 function inventoryList(items) {
   if (!items.length) return el('p.faint', { text: 'Empty.' });
-  return el('div.inventory-list', {}, items.map((item) => el('div.inventory-item', {}, [
-    el('div.inventory-item-name', { text: item.name }),
-    el('div.faint', { text: itemMeta(item) || 'No modifiers' }),
-  ])));
+  return el('div.inventory-list', {}, items.map((item) => {
+    const icon = spriteNode(itemSprite(item.id), 'inventory-item-icon');
+    return el('div.inventory-item', {}, [
+      icon,
+      el('div.inventory-item-copy', {}, [
+        el('div.inventory-item-name', { text: item.name }),
+        el('div.faint', { text: itemMeta(item) || 'No modifiers' }),
+      ]),
+    ]);
+  }));
 }
 
 /** @param {any} hero */
@@ -76,9 +83,10 @@ function overlay(title, body, onClose, ariaLabel) {
 
 /** @param {{hero:any,onClose:()=>void}} args */
 export function heroDetailsModal({ hero, onClose }) {
+  const portrait = spriteNode(heroSprite(hero.dataId), 'character-portrait');
   return overlay(hero.name, [
     el('div.character-summary', {}, [
-      el('div.character-glyph', { text: hero.glyph }),
+      el('div.character-glyph', {}, [portrait ?? el('span', { text: hero.glyph })]),
       el('div', {}, [
         el('div', { text: `Level ${hero.level} · ${hero.role}` }),
         el('div.faint', { text: `${hero.xp} XP${hero.alive ? '' : ' · down'}` }),
