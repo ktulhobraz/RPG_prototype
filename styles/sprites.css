@@ -41,6 +41,8 @@
 }
 
 .hero-avatar {
+  display: grid;
+  place-items: center;
   overflow: hidden;
   background: #171310;
 }
