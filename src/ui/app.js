@@ -17,12 +17,22 @@ import { outcomeScreen } from './screens/outcome.js';
 const AI_BEAT = 420;
 const root = /** @type {HTMLElement} */ (document.getElementById('app'));
 const storage = createStorageAdapter(globalThis.localStorage);
-const ui = { content: null, session: null, selected: [], pendingAbility: null, aiTimer: null };
+const ui = {
+  content: null,
+  session: null,
+  selected: [],
+  pendingAbility: null,
+  aiTimer: null,
+  panel: null,
+};
 
 const actions = {
   step(cell) { stepIntent(ui.session, cell); persist(); render(); scheduleAi(); },
   acknowledge() { acknowledge(ui.session); persist(); render(); scheduleAi(); },
   assignItem(itemId, heroId) { assignStashItem(ui.session, itemId, heroId); persist(); render(); },
+  openHero(heroId) { ui.panel = { kind: 'hero', heroId }; render(); },
+  openStash() { ui.panel = { kind: 'stash' }; render(); },
+  closePanel() { ui.panel = null; render(); },
   move(cell) { moveTo(ui.session.combat, cell); render(); },
   attack(target) {
     const combat = ui.session.combat;
@@ -38,8 +48,8 @@ const actions = {
   },
   brace() { defend(ui.session.combat, ui.session.rng); render(); },
   endTurn() { ui.pendingAbility = null; endHeroTurn(ui.session); persist(); render(); scheduleAi(); },
-  abandon() { finish(ui.session, 'defeat'); clearSave(storage); render(); },
-  again() { ui.session = null; ui.pendingAbility = null; clearSave(storage); render(); },
+  abandon() { finish(ui.session, 'defeat'); ui.panel = null; clearSave(storage); render(); },
+  again() { ui.session = null; ui.pendingAbility = null; ui.panel = null; clearSave(storage); render(); },
 };
 
 function afterHeroAction() {
@@ -76,21 +86,33 @@ function render() {
   if (session.phase === 'victory' || session.phase === 'defeat') {
     replace(root, [outcomeScreen({ session, onAgain: actions.again })]); return;
   }
-  replace(root, [delveScreen({ session, pendingAbility: ui.pendingAbility, actions })]);
+  replace(root, [delveScreen({
+    session,
+    pendingAbility: ui.pendingAbility,
+    panel: ui.panel,
+    actions,
+  })]);
 }
 
 function startDelve() {
   ui.session = startSession({
     content: ui.content, heroIds: ui.selected, seed: Math.random().toString(36).slice(2, 8),
   });
-  ui.pendingAbility = null; persist(); render();
+  ui.pendingAbility = null;
+  ui.panel = null;
+  persist();
+  render();
 }
 
 function continueDelve() {
   const snapshot = load(storage);
   const restored = snapshot ? restoreSession(snapshot, ui.content) : null;
   if (!restored) { clearSave(storage); render(); return; }
-  ui.session = restored; ui.pendingAbility = null; render(); scheduleAi();
+  ui.session = restored;
+  ui.pendingAbility = null;
+  ui.panel = null;
+  render();
+  scheduleAi();
 }
 
 async function boot() {
