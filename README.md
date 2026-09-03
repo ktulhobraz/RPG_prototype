@@ -74,5 +74,10 @@ decision log.
 
 ## Assets and naming
 
-No third-party art, fonts, or trademarked names are used. The board is drawn with CSS and single
-characters. Setting-facing names and descriptions live in `src/data/*.json`.
+No third-party art, fonts, or trademarked names are used. Generated prototype art lives under
+`assets/art/` and is split by use: hero portraits for cards/details, compact hero and monster tokens
+for the tactical board, dungeon tile rows, and item/UI icon rows. `src/ui/sprites.js` owns the
+content-id mapping. If the available art does not match a content entity, the UI keeps the existing
+glyph instead of relabelling that entity to fit an image.
+
+Setting-facing names and descriptions live in `src/data/*.json`.
