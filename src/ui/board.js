@@ -2,7 +2,8 @@
 /** Dungeon/battle board renderer. */
 
 import { el, woundClass } from './dom.js';
-import { cellAt, WALL, HAZARD } from '../core/grid.js';
+import { cellAt, WALL, HAZARD, DOOR } from '../core/grid.js';
+import { actorSprite, spriteNode, terrainSprite } from './sprites.js';
 
 export function renderBoard({ tile, actors = [], reachable, targets, allies, active, fog, onCell }) {
   const board = el('div.board', {
@@ -47,8 +48,13 @@ function renderCell({ tile, x, y, actors, reachable, targets, allies, active, fo
     onClick: interactive ? () => onCell({ x, y, actor: occupant }) : undefined,
   });
 
+  const terrain = spriteNode(terrainFor({ unseen, exit, code, x, y }), 'terrain-sprite');
+  if (terrain) cell.append(terrain);
+
   if (occupant) {
-    cell.append(el('span.glyph', { text: occupant.glyph }));
+    const portrait = spriteNode(actorSprite(occupant), 'actor-sprite');
+    if (portrait) cell.append(portrait);
+    else cell.append(el('span.glyph', { text: occupant.glyph }));
     const track = el('div.bar');
     track.append(el('span', {
       class: woundClass(occupant.wounds, occupant.maxWounds),
@@ -61,6 +67,15 @@ function renderCell({ tile, x, y, actors, reachable, targets, allies, active, fo
     cell.append(el('span.glyph.sense-mark', { text: '?', 'aria-hidden': 'true' }));
   }
   return cell;
+}
+
+function terrainFor({ unseen, exit, code, x, y }) {
+  if (unseen) return terrainSprite('fog');
+  if (exit) return terrainSprite('exit');
+  if (code === WALL) return terrainSprite('wall');
+  if (code === HAZARD) return terrainSprite('hazard');
+  if (code === DOOR) return terrainSprite('door');
+  return terrainSprite(`floor${Math.abs((x * 3 + y * 5) % 3)}`);
 }
 
 function describeCell({ unseen, sensed, exit, code, occupant, x, y }) {
