@@ -1,0 +1,322 @@
+/*
+ * Mobile-first, portrait, touch only.
+ *
+ * Layout rules that matter here: the board scrolls inside its own box rather than the page,
+ * the action bar stays within thumb reach at the bottom, and every tap target is at least 44px.
+ * Colours are a single dark palette by choice - a dungeon reads better dark, and one palette is
+ * one thing to keep consistent.
+ */
+
+:root {
+  --bg: #14110f;
+  --bg-panel: #1e1a17;
+  --bg-raised: #292320;
+  --ink: #e8e0d5;
+  --ink-dim: #a2968a;
+  --ink-faint: #6d6259;
+  --line: #3a322c;
+  --hero: #6fa8c7;
+  --monster: #c2613f;
+  --gold: #cba43f;
+  --danger: #b4453a;
+  --good: #7fa05a;
+  --focus: #e8c76a;
+
+  --cell: 40px;
+  --radius: 8px;
+  --tap: 44px;
+
+  --pad-top: env(safe-area-inset-top, 0px);
+  --pad-bottom: env(safe-area-inset-bottom, 0px);
+  --pad-left: env(safe-area-inset-left, 0px);
+  --pad-right: env(safe-area-inset-right, 0px);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* Kills the 300ms tap delay and double-tap zoom without disabling pinch-zoom on the page. */
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior: none;
+}
+
+body {
+  /* dvh rather than vh: the mobile URL bar collapses and vh would leave a dead strip. */
+  min-height: 100dvh;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: calc(var(--pad-top) + 8px) calc(var(--pad-right) + 10px)
+           calc(var(--pad-bottom) + 8px) calc(var(--pad-left) + 10px);
+  gap: 8px;
+}
+
+.loading, .notice { color: var(--ink-dim); padding: 24px; text-align: center; }
+
+/* ---------- shared pieces ---------- */
+
+button {
+  font: inherit;
+  color: var(--ink);
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  min-height: var(--tap);
+  cursor: pointer;
+  /* Long-press on a phone otherwise pops the text-selection callout mid-fight. */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 120ms ease, border-color 120ms ease, opacity 120ms ease;
+}
+
+button:disabled { opacity: 0.4; cursor: default; }
+button:not(:disabled):active { background: #352d28; }
+button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+button.primary {
+  background: #3d3128;
+  border-color: var(--gold);
+  color: var(--focus);
+  font-weight: 600;
+}
+
+button.selected { border-color: var(--focus); background: #3d3128; }
+
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+}
+
+.title { font-size: 20px; font-weight: 650; margin: 0 0 2px; letter-spacing: 0.01em; }
+.subtitle { color: var(--ink-dim); margin: 0 0 12px; font-size: 14px; }
+.muted { color: var(--ink-dim); }
+.faint { color: var(--ink-faint); }
+
+.header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.header h1 { font-size: 17px; margin: 0; font-weight: 620; }
+.header .meta { color: var(--ink-dim); font-size: 13px; }
+
+.gold::before { content: "◆ "; color: var(--gold); }
+
+/* ---------- board ---------- */
+
+.board-wrap {
+  /* The board is the one element allowed to scroll sideways; the page itself must not. */
+  overflow: auto;
+  background: var(--bg-panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 8px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.board {
+  display: grid;
+  gap: 2px;
+  margin: 0 auto;
+  width: max-content;
+}
+
+.cell {
+  width: var(--cell);
+  height: var(--cell);
+  border-radius: 4px;
+  /* Floor is deliberately well clear of the wall tone: on a phone in daylight a subtle
+     difference disappears entirely, and the player must be able to read the room at a glance. */
+  background: #3a322c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  font-weight: 650;
+  position: relative;
+  border: 1px solid transparent;
+  padding: 0;
+  min-height: 0;
+}
+
+.cell.wall { background: #100d0b; border-color: #100d0b; border-radius: 2px; }
+.cell.hazard { background: #294240; }
+.cell.hazard::after {
+  content: "≈";
+  position: absolute;
+  color: #43706c;
+  font-size: 15px;
+}
+
+/* Highlights must read against the lighter floor, not just against the wall. */
+.cell.reachable { background: #35502f; border-color: #5d8a4f; }
+.cell.targetable { background: #5c2c1e; border-color: var(--monster); }
+.cell.healable { background: #26455c; border-color: var(--hero); }
+.cell.active { border-color: var(--focus); box-shadow: 0 0 0 1px var(--focus) inset; }
+
+.cell .glyph { position: relative; z-index: 1; }
+.cell.hero .glyph { color: var(--hero); }
+.cell.monster .glyph { color: var(--monster); }
+.cell.downed .glyph { color: var(--ink-faint); }
+
+/* A thin wound bar under each occupied cell, readable at a glance without numbers. */
+.cell .bar {
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  bottom: 3px;
+  height: 3px;
+  border-radius: 2px;
+  background: #00000066;
+  overflow: hidden;
+}
+
+.cell .bar span { display: block; height: 100%; background: var(--good); }
+.cell .bar span.hurt { background: var(--gold); }
+.cell .bar span.critical { background: var(--danger); }
+
+/* ---------- party ---------- */
+
+.party { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+
+.hero-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--hero);
+  border-radius: var(--radius);
+  padding: 7px 9px;
+  font-size: 13px;
+}
+
+.hero-card.turn { border-color: var(--focus); border-left-color: var(--focus); }
+.hero-card.dead { opacity: 0.45; border-left-color: var(--ink-faint); }
+
+.hero-card .name {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  font-weight: 600;
+  margin-bottom: 3px;
+}
+
+.hero-card .wounds { color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+.hero-card .wounds.hurt { color: var(--gold); }
+.hero-card .wounds.critical { color: var(--danger); }
+
+.track {
+  height: 4px;
+  border-radius: 2px;
+  background: #00000055;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.track span { display: block; height: 100%; background: var(--good); }
+.track span.hurt { background: var(--gold); }
+.track span.critical { background: var(--danger); }
+
+/* ---------- log ---------- */
+
+.log {
+  background: var(--bg-panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--ink-dim);
+  max-height: 108px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.log p { margin: 0 0 4px; }
+.log p:last-child { margin-bottom: 0; color: var(--ink); }
+
+/* ---------- actions ---------- */
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  /* Sits at the bottom of the column, inside thumb reach. */
+  margin-top: auto;
+}
+
+.actions button { flex: 1 1 auto; min-width: 96px; }
+
+.hint {
+  font-size: 13px;
+  color: var(--ink-dim);
+  min-height: 19px;
+  padding: 0 2px;
+}
+
+.hint.warn { color: var(--focus); }
+
+/* ---------- roster / screens ---------- */
+
+.roster { display: grid; gap: 6px; }
+
+.roster-item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  text-align: left;
+  padding: 10px 12px;
+  width: 100%;
+}
+
+.roster-item .mark {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  color: var(--hero);
+}
+
+.roster-item.selected .mark { border-color: var(--focus); color: var(--focus); }
+.roster-item .body { flex: 1; min-width: 0; }
+.roster-item .who { font-weight: 600; }
+.roster-item .blurb { color: var(--ink-dim); font-size: 13px; }
+.roster-item .stats { color: var(--ink-faint); font-size: 12px; font-variant-numeric: tabular-nums; }
+
+.stack { display: grid; gap: 10px; }
+.center { text-align: center; }
+
+.outcome { font-size: 22px; font-weight: 680; margin: 0; }
+.outcome.win { color: var(--focus); }
+.outcome.loss { color: var(--danger); }
+
+.tally { display: grid; gap: 4px; font-size: 14px; }
+.tally div { display: flex; justify-content: space-between; gap: 12px; }
+.tally .value { font-variant-numeric: tabular-nums; }
+
+/* Wider screens get a bigger board rather than a stretched one-column layout. */
+@media (min-width: 420px) { :root { --cell: 46px; } }
+@media (min-height: 780px) { .log { max-height: 150px; } }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}

@@ -1,0 +1,14 @@
+[
+  { "id": "quiet", "weight": 20, "text": "Nothing but the sound of water finding its way down.", "effect": { "kind": "none" } },
+  { "id": "ambush", "weight": 14, "text": "Shapes drop from a crack in the ceiling.", "effect": { "kind": "spawn", "amount": 2 } },
+  { "id": "cave_in", "weight": 8, "text": "The ceiling gives way behind you.", "effect": { "kind": "damage", "target": "random", "amount": 2 } },
+  { "id": "foul_air", "weight": 8, "text": "A pocket of stale air burns in every throat.", "effect": { "kind": "damage", "target": "all", "amount": 1 } },
+  { "id": "old_cache", "weight": 10, "text": "A dead adventurer's pack, still buckled shut.", "effect": { "kind": "gold", "amount": 25 } },
+  { "id": "clean_water", "weight": 9, "text": "A trickle of water that does not smell of rot.", "effect": { "kind": "heal", "target": "all", "amount": 2 } },
+  { "id": "wrong_turn", "weight": 8, "text": "The passage doubles back. Time lost, nerves worse.", "effect": { "kind": "none" } },
+  { "id": "grasping_dark", "weight": 7, "text": "Something takes hold of the rearmost boot.", "effect": { "kind": "damage", "target": "weakest", "amount": 3 } },
+  { "id": "shrine_offering", "weight": 6, "text": "A niche shrine, its offering bowl unlooted.", "effect": { "kind": "item" } },
+  { "id": "second_wind", "weight": 6, "text": "A short halt. It is not rest, but it is something.", "effect": { "kind": "heal", "target": "weakest", "amount": 4 } },
+  { "id": "distant_horn", "weight": 5, "text": "A horn sounds somewhere below. It is answered.", "effect": { "kind": "spawn", "amount": 1 } },
+  { "id": "buried_coin", "weight": 5, "text": "Coins scattered where someone dropped everything and ran.", "effect": { "kind": "gold", "amount": 15 } }
+]

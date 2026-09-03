@@ -1,0 +1,131 @@
+[
+  {
+    "id": "ratkin",
+    "name": "Ratkin Scavenger",
+    "role": "melee",
+    "glyph": "r",
+    "profile": {
+      "ws": 3,
+      "bs": 2,
+      "str": 3,
+      "tou": 3,
+      "wounds": 5,
+      "init": 4,
+      "attacks": 1,
+      "move": 5
+    },
+    "xpValue": 10,
+    "tier": 1
+  },
+  {
+    "id": "ratkin_slinger",
+    "name": "Ratkin Slinger",
+    "role": "ranged",
+    "glyph": "s",
+    "profile": {
+      "ws": 2,
+      "bs": 4,
+      "str": 2,
+      "tou": 2,
+      "wounds": 4,
+      "init": 5,
+      "attacks": 1,
+      "move": 5
+    },
+    "xpValue": 12,
+    "tier": 1
+  },
+  {
+    "id": "goblin",
+    "name": "Cave Goblin",
+    "role": "melee",
+    "glyph": "g",
+    "profile": {
+      "ws": 2,
+      "bs": 3,
+      "str": 2,
+      "tou": 3,
+      "wounds": 4,
+      "init": 3,
+      "attacks": 1,
+      "move": 4
+    },
+    "xpValue": 8,
+    "tier": 1
+  },
+  {
+    "id": "beastman",
+    "name": "Horned Beastman",
+    "role": "melee",
+    "glyph": "B",
+    "profile": {
+      "ws": 4,
+      "bs": 2,
+      "str": 4,
+      "tou": 4,
+      "wounds": 9,
+      "init": 3,
+      "attacks": 1,
+      "move": 4
+    },
+    "xpValue": 25,
+    "tier": 2
+  },
+  {
+    "id": "risen",
+    "name": "Risen Dead",
+    "role": "melee",
+    "glyph": "z",
+    "profile": {
+      "ws": 2,
+      "bs": 2,
+      "str": 3,
+      "tou": 4,
+      "wounds": 7,
+      "init": 1,
+      "attacks": 1,
+      "move": 3
+    },
+    "xpValue": 18,
+    "tier": 2
+  },
+  {
+    "id": "warlock",
+    "name": "Pit Warlock",
+    "role": "caster",
+    "glyph": "k",
+    "profile": {
+      "ws": 3,
+      "bs": 4,
+      "str": 3,
+      "tou": 3,
+      "wounds": 8,
+      "init": 4,
+      "attacks": 1,
+      "move": 4
+    },
+    "xpValue": 30,
+    "tier": 2
+  },
+  {
+    "id": "troll",
+    "name": "Sump Troll",
+    "role": "boss",
+    "glyph": "T",
+    "profile": {
+      "ws": 4,
+      "bs": 2,
+      "str": 5,
+      "tou": 5,
+      "wounds": 28,
+      "init": 2,
+      "attacks": 2,
+      "move": 4
+    },
+    "abilities": [
+      "regenerate"
+    ],
+    "xpValue": 120,
+    "tier": 3
+  }
+]
