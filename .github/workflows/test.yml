@@ -1,0 +1,33 @@
+name: Tests
+
+on:
+  # Branch pushes are covered by pull_request; listing both would run every PR twice.
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: node --test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # No install step: the project has zero dependencies and no lockfile by design,
+      # and the suite runs on Node's built-in test runner.
+      - name: Run tests
+        run: npm test
+
+      # The suite already fails outside a 20-80% win band. This runs a larger sample and
+      # prints the figures, so a change that shifts balance without breaking the band is
+      # still visible in the log rather than silent.
+      - name: Balance simulation
+        run: npm run sim 400
