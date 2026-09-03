@@ -36,9 +36,15 @@ npm test          # unit, contract and end-to-end delve tests
 npm run sim 600   # play 600 delves headlessly and report win rate and attrition
 ```
 
+Both run in CI on every pull request and on pushes to `main`. Publishing to GitHub Pages happens
+on pushes to `main`, and can be triggered manually from any branch (Actions → Deploy to Pages →
+Run workflow) to try a branch on a real phone before merging. This needs the repository's
+**Settings → Pages → Source** set to **GitHub Actions** once.
+
 Architecture rule: `src/core/**` is pure logic — no `document`, no `window`, no `localStorage`,
 no `Math.random()`. All randomness comes from an injected seeded PRNG, which is what makes delves
-reproducible and the tests deterministic.
+reproducible and the tests deterministic. This is enforced by `tests/purity.test.js`, not left to
+good intentions.
 
 ```
 src/core/   game logic, DOM-free and testable

@@ -18,6 +18,7 @@ with two interchangeable rule systems and a tested, DOM-free core.
 - Local save via an injected storage adapter, degrading gracefully when storage is unavailable
 - Mobile-first portrait UI, touch-only input
 - Node built-in test suite plus a balance simulation script
+- CI running tests on every pull request, and a GitHub Pages deploy workflow
 
 ## Out of scope
 
@@ -39,11 +40,12 @@ with two interchangeable rule systems and a tested, DOM-free core.
 | `index.html`, `styles/main.css`, `package.json` | Create |
 | `src/core/**`, `src/ui/**`, `src/data/**` | Create |
 | `tests/**` | Create |
+| `.github/workflows/{test,pages}.yml` | Create |
 
 ## Acceptance criteria
 
-- [ ] `npm test` passes with zero installed dependencies
-- [ ] No file under `src/core/` references `document`, `window`, `localStorage`, or `Math.random`
+- [ ] `npm test` passes with zero installed dependencies, in CI as well as locally
+- [ ] No file under `src/core/` references `document`, `window`, `localStorage`, or `Math.random` (enforced by `tests/purity.test.js`)
 - [ ] The same seed reproduces the same delve exactly
 - [ ] A full delve is completable in portrait orientation on a phone, using taps only
 - [ ] Simulated win rate stays inside the 20-80% band enforced by the test suite

@@ -20,6 +20,8 @@ Superseded entries are kept, not deleted, so the history of direction changes st
 | D-19 | **One rule system** (`d6`); the percentile system is removed | Superseded D-13/D-18. Two systems doubled the balancing surface; the percentile side measured 1.7% win rate against d6's 7.5% |
 | D-20 | **Balance is measured, not judged** | `npm run sim` plays hundreds of delves; a test fails outside a 20-80% win band. See `docs/design/balance.md` |
 | D-21 | **Abilities are engine behaviour, not decoration** | Ability ids in data resolve through `src/core/abilities.js`; they supply the party's only in-combat healing |
+| D-22 | **Architectural rules are enforced by tests, not by convention** | `tests/purity.test.js` fails the build if core gains DOM access or ambient randomness |
+| D-23 | **CI runs the suite and the balance simulation** | `.github/workflows/test.yml`; Pages deploys from `main` with manual dispatch for branch previews |
 
 ## Superseded
 
