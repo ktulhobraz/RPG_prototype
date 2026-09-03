@@ -27,18 +27,22 @@ Tabletop-dungeon-crawler shape: top-down, tile-based dungeon assembled from a de
 a fixed party of four, turn-based combat on a small grid, event rolls between rooms.
 
 1. **Party select** — pick four heroes from the roster.
-2. **Explore** — the party walks each room cell by cell under a fog of war, revealed by
-   Initiative-driven scouting as they go. Every newly-stepped cell risks a corruption-driven
-   ambush (ruinous or wandering monsters, see below); trap and treasure sit on individual cells,
-   found and resolved as the party reaches them. Reaching the room's door moves on, rolling the
-   between-room event first.
+2. **Explore** — the party walks each room cell by cell under fog of war, revealed by
+   Initiative-driven scouting. The authored `+` tile is the entrance only. A separate seeded exit
+   is placed on a distant passable cell when the room is entered. Newly-stepped cells can trigger
+   a corruption ambush, trap, or treasure; the exit itself is safe.
 3. **Corruption** — each delve is touched by one theme and intensity, fixed for its length. The
    theme decides which monsters can appear; the intensity scales how large an ambush is, layered
    on top of the existing depth-based difficulty curve.
-4. **Combat** — a triggered ambush fights right where the party is standing; initiative order,
-   movement, melee, ranged, spells on the tile grid.
-5. **Objective room** — boss fight, loot, end of the delve.
-6. **Outcome** — result screen, experience and gold, progress saved locally.
+4. **Combat** — encounters open on a separate authored battlefield, presented as a combat overlay
+   while the exploration room state remains intact. Every hero and monster rolls individual
+   initiative (`d6 + Initiative`) into one visible turn queue.
+5. **Loot / inventory** — gold is shared. Found items enter a party stash; the player can assign
+   an item to a specific living hero, after which existing equipment modifiers affect that hero.
+6. **Rest / transition** — reaching the room exit passively restores injured living heroes by
+   `d6 + (base Toughness - 3)`, minimum 1, then resolves the between-room event and continues.
+7. **Objective room** — boss encounter on a battlefield, loot, end of the delve.
+8. **Outcome** — result screen, experience and gold, progress saved locally.
 
 ## Rules
 
@@ -55,7 +59,7 @@ because it keeps dice out of the engine, not because a replacement is planned.
 Prove one complete delve end-to-end on a phone. Scope ceiling:
 
 - 1 dungeon, 4 playable heroes, 5-6 monster types
-- 8-10 room tiles, ~12 events, ~15 items
+- 8-10 exploration room tiles, a small authored battlefield set, ~12 events, ~15 items
 - Balance verified by simulation, not by feel
 
 ## Technical direction
@@ -68,14 +72,15 @@ Prove one complete delve end-to-end on a phone. Scope ceiling:
 - **Mobile-first, touch-only.** Portrait layout, tap-to-move and tap-to-target, no hover,
   no drag, no keyboard dependency.
 - **Content separate from engine.** Every name, description and stat block lives in `src/data/*.json`.
-  The engine contains no setting-specific vocabulary, so the setting can be re-skinned by
-  swapping data files. No third-party art, fonts or logos are used.
+  Exploration rooms and battlefields are authored data; the engine contains no setting-specific
+  vocabulary. No third-party art, fonts or logos are used.
 
 ## Deferred / out of scope
 
 - Settlement or hub between delves, campaign structure, factions, economy
 - Procedural generation (the tile deck is authored, not generated)
-- Crafting, complex inventory management, deep NPC relationship simulation
+- Crafting and **complex** inventory rules such as encumbrance, weight, durability, capacity limits
+- Deep NPC relationship simulation
 - Final PC engine or production stack (still unresolved)
 - Backend, accounts, cloud saves, online play
 - Shelter management and NPC-squad expeditions (superseded, see above)
