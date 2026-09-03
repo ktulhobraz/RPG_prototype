@@ -15,16 +15,19 @@ const ART_FILES = [
   'items-row3.webp',
 ];
 
-test('party detail, sprite and delve UI modules import without side effects', async () => {
+test('party detail, sprite, delve and arena UI modules import without side effects', async () => {
   const details = await import('../src/ui/party_details.js');
   const sprites = await import('../src/ui/sprites.js');
   const delve = await import('../src/ui/screens/delve.js');
+  const arena = await import('../src/ui/screens/arena.js');
   assert.equal(typeof details.heroDetailsModal, 'function');
   assert.equal(typeof details.stashModal, 'function');
   assert.equal(typeof sprites.heroSprite, 'function');
   assert.equal(typeof sprites.heroTokenSprite, 'function');
   assert.equal(typeof sprites.itemSprite, 'function');
   assert.equal(typeof delve.delveScreen, 'function');
+  assert.equal(typeof arena.arenaSetupScreen, 'function');
+  assert.equal(typeof arena.arenaScreen, 'function');
 });
 
 test('party and sprite stylesheets are loaded by the page', () => {
