@@ -10,7 +10,7 @@
 /** @typedef {import('./state.js').Content} Content */
 
 const FILES = /** @type {const} */ (
-  ['heroes', 'monsters', 'rooms', 'events', 'items', 'corruptions']
+  ['heroes', 'monsters', 'rooms', 'events', 'items', 'corruptions', 'battlefields']
 );
 
 /**
@@ -46,8 +46,6 @@ export function validateContent(content) {
     throw new Error('content: monsters must include a "boss"');
   }
   for (const theme of content.corruptions) {
-    // A theme with no tier-1 monster goes silent for the first half of any delve it's rolled
-    // for — the ambush pool comes up empty until depthRatio crosses 0.6. Catch it at load time.
     const hasEarlyMonster = content.monsters.some(
       (m) => theme.factions.includes(m.faction) && (m.tier ?? 1) === 1,
     );
@@ -55,13 +53,13 @@ export function validateContent(content) {
       throw new Error(`content: corruption "${theme.id}" has no tier-1 monster in its factions`);
     }
   }
-  for (const room of content.rooms) {
-    if (room.cells.length !== room.h) {
-      throw new Error(`room ${room.id}: declares h=${room.h} but has ${room.cells.length} rows`);
+  for (const tile of [...content.rooms, ...content.battlefields]) {
+    if (tile.cells.length !== tile.h) {
+      throw new Error(`room ${tile.id}: declares h=${tile.h} but has ${tile.cells.length} rows`);
     }
-    for (const row of room.cells) {
-      if (row.length !== room.w) {
-        throw new Error(`room ${room.id}: declares w=${room.w} but has a row of ${row.length}`);
+    for (const row of tile.cells) {
+      if (row.length !== tile.w) {
+        throw new Error(`room ${tile.id}: declares w=${tile.w} but has a row of ${row.length}`);
       }
     }
   }

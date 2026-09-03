@@ -25,7 +25,11 @@ Superseded entries are kept, not deleted, so the history of direction changes st
 | D-24 | **Corruption**: one theme + intensity per delve, fixed for the whole run | `src/core/corruption.js`; theme restricts monster faction, intensity scales encounter size as a second multiplier layered on top of depth, not replacing it |
 | D-25 | **Corruption theme and faction names are original**, no Games Workshop vocabulary | Direct continuation of D-14, not a new constraint — see `src/data/corruptions.json` |
 | D-26 | **Rooms are walked cell by cell**, not entered as a single pre-rolled encounter | `src/core/exploration.js`: fog of war, per-step ambush chance (at most one per room), scattered trap/treasure content. Reveal radius is passive, from party Initiative — no new player action or resource |
-| D-27 | **A wandering ambush fights in place**, on the room's existing tile | `combat.js`'s `placement:'inPlace'`; the boss keeps the original fresh-room placement, since the objective room is never explored |
+| D-28 | **Combat uses a separate battlefield**, not the exploration room tile | Encounter creation selects a seeded authored tile from `src/data/battlefields.json`; UI presents combat as an overlay while exploration state remains intact |
+| D-29 | **Existing individual initiative remains the turn model and is exposed in combat UI** | Every actor rolls `d6 + Initiative`; one ordered queue contains heroes and monsters and the active actor is highlighted |
+| D-30 | **Loot first enters a party stash; assignment to a hero is explicit** | Found equipment is no longer auto-routed by role. Assigning it uses the existing equipment modifier rules on that hero |
+| D-31 | **Entrance and exit are separate** | Authored `+` remains the room entrance. Each explored room gets a seeded runtime exit on a distant passable cell; the exit itself cannot trigger trap/content/ambush |
+| D-32 | **Passive rest happens at the room exit** | Each injured living hero heals `d6 + (base Toughness - 3)`, minimum 1. Equipment Toughness does not modify recovery |
 
 ## Superseded
 
@@ -41,6 +45,7 @@ Retained for history. **Not** current design.
 | D-08 | **Termux removed** from initial strategy | Still true, but no longer a live topic; superseded by D-09 |
 | D-13 | **Two rule systems** (`d6`, `d100`) ship together | D-19 — the percentile system was removed after simulation |
 | D-18 | `d6` is the balance reference, `d100` is experimental | D-19 — there is only one system to reference |
+| D-27 | **A wandering ambush fights in place**, on the exploration tile | D-28 — all combat now uses a separate authored battlefield |
 
 ## Unresolved
 
@@ -59,6 +64,6 @@ by WP-01), **U-07** (see D-17), **U-08** (Python has no role in this prototype; 
 
 - Settlement / hub between delves, campaign, factions, economy
 - Procedural generation
-- Crafting, complex inventory, deep NPC relationship simulation
+- Crafting, **complex** inventory management (weight, capacity, durability, encumbrance), deep NPC relationship simulation
 - Backend services, accounts, cloud saves, online play
 - Final PC engine selection

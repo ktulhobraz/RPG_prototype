@@ -1,10 +1,5 @@
 // @ts-check
-/**
- * Turns content records into combatants the engine can use.
- *
- * The rule system is passed in rather than imported, so the same content produces a valid
- * combatant under either system without the factory knowing which one is active.
- */
+/** Turns content records into combatants the engine can use. */
 
 import { normalizeProfile, applyMods } from './profile.js';
 
@@ -17,7 +12,6 @@ import { normalizeProfile, applyMods } from './profile.js';
  * @property {string} id
  * @property {string} name
  * @property {Partial<CanonProfile>} profile
- * 
  * @property {string[]} [abilities]
  * @property {string} [glyph]
  * @property {string} [role]
@@ -26,40 +20,23 @@ import { normalizeProfile, applyMods } from './profile.js';
 
 /**
  * @typedef {Combatant & {
- *   dataId: string,
- *   glyph: string,
- *   role: string,
- *   abilities: string[],
- *   x: number,
- *   y: number,
- *   alive: boolean,
- *   items: any[],
- *   xp: number,
- *   level: number,
+ *   dataId:string, glyph:string, role:string, abilities:string[], x:number, y:number,
+ *   alive:boolean, items:any[], xp:number, level:number, baseCanon:CanonProfile
  * }} Actor
  */
 
-/**
- * @param {EntityData} data
- * @param {RuleSystem} rules
- * @param {object} [options]
- * @param {string} [options.id]                Unique instance id; defaults to the data id.
- * @param {Partial<CanonProfile>[]} [options.mods]  Equipment or level bonuses.
- * @param {'hero' | 'monster'} [options.side]
- * @returns {Actor}
- */
+/** @param {EntityData} data @param {RuleSystem} rules @param {{id?:string,mods?:Partial<CanonProfile>[],side?:'hero'|'monster'}} [options] */
 export function createActor(data, rules, options = {}) {
-  const base = normalizeProfile(data.profile, data.id);
-  const canon = options.mods?.length ? applyMods(base, options.mods) : base;
+  const baseCanon = normalizeProfile(data.profile, data.id);
+  const canon = options.mods?.length ? applyMods(baseCanon, options.mods) : { ...baseCanon };
   const profile = rules.toProfile(canon);
-  // Wounds live on whichever scale the active system uses, so the pool comes from the profile.
   const maxWounds = profile.wounds ?? canon.wounds;
-
   return {
     id: options.id ?? data.id,
     dataId: data.id,
     name: data.name,
     side: options.side ?? 'monster',
+    baseCanon: { ...baseCanon },
     canon,
     profile,
     wounds: maxWounds,
@@ -76,11 +53,7 @@ export function createActor(data, rules, options = {}) {
   };
 }
 
-/**
- * Apply damage and flip the alive flag. Returns the amount actually dealt, which can be less
- * than requested when the target had fewer wounds left.
- * @param {Actor} actor @param {number} amount
- */
+/** @param {Actor} actor @param {number} amount */
 export function damageActor(actor, amount) {
   const dealt = Math.min(actor.wounds, Math.max(0, Math.round(amount)));
   actor.wounds -= dealt;
@@ -91,10 +64,7 @@ export function damageActor(actor, amount) {
   return dealt;
 }
 
-/**
- * Heal without exceeding the maximum. Dead actors stay dead — recovery is a separate concern.
- * @param {Actor} actor @param {number} amount
- */
+/** @param {Actor} actor @param {number} amount */
 export function healActor(actor, amount) {
   if (!actor.alive) return 0;
   const healed = Math.min(actor.maxWounds - actor.wounds, Math.max(0, Math.round(amount)));

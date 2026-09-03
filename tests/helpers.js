@@ -13,6 +13,7 @@ export function loadTestContent() {
     events: read('events'),
     items: read('items'),
     corruptions: read('corruptions'),
+    battlefields: read('battlefields'),
   });
 }
 
