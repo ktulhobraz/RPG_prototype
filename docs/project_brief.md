@@ -27,10 +27,16 @@ Tabletop-dungeon-crawler shape: top-down, tile-based dungeon assembled from a de
 a fixed party of four, turn-based combat on a small grid, event rolls between rooms.
 
 1. **Party select** — pick four heroes from the roster.
-2. **Explore** — advance through the dungeon; each step reveals the next tile from the deck.
-   Every exploration turn rolls for an unexpected event, so stalling is not free.
-3. **Tile resolution** — empty / monsters / trap / treasure / objective.
-4. **Combat** — initiative order, movement, melee, ranged, spells on the tile grid.
+2. **Explore** — the party walks each room cell by cell under a fog of war, revealed by
+   Initiative-driven scouting as they go. Every newly-stepped cell risks a corruption-driven
+   ambush (ruinous or wandering monsters, see below); trap and treasure sit on individual cells,
+   found and resolved as the party reaches them. Reaching the room's door moves on, rolling the
+   between-room event first.
+3. **Corruption** — each delve is touched by one theme and intensity, fixed for its length. The
+   theme decides which monsters can appear; the intensity scales how large an ambush is, layered
+   on top of the existing depth-based difficulty curve.
+4. **Combat** — a triggered ambush fights right where the party is standing; initiative order,
+   movement, melee, ranged, spells on the tile grid.
 5. **Objective room** — boss fight, loot, end of the delve.
 6. **Outcome** — result screen, experience and gold, progress saved locally.
 

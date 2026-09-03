@@ -22,6 +22,10 @@ Superseded entries are kept, not deleted, so the history of direction changes st
 | D-21 | **Abilities are engine behaviour, not decoration** | Ability ids in data resolve through `src/core/abilities.js`; they supply the party's only in-combat healing |
 | D-22 | **Architectural rules are enforced by tests, not by convention** | `tests/purity.test.js` fails the build if core gains DOM access or ambient randomness |
 | D-23 | **CI runs the suite and the balance simulation** | `.github/workflows/test.yml`; Pages deploys from `main` with manual dispatch for branch previews |
+| D-24 | **Corruption**: one theme + intensity per delve, fixed for the whole run | `src/core/corruption.js`; theme restricts monster faction, intensity scales encounter size as a second multiplier layered on top of depth, not replacing it |
+| D-25 | **Corruption theme and faction names are original**, no Games Workshop vocabulary | Direct continuation of D-14, not a new constraint — see `src/data/corruptions.json` |
+| D-26 | **Rooms are walked cell by cell**, not entered as a single pre-rolled encounter | `src/core/exploration.js`: fog of war, per-step ambush chance (at most one per room), scattered trap/treasure content. Reveal radius is passive, from party Initiative — no new player action or resource |
+| D-27 | **A wandering ambush fights in place**, on the room's existing tile | `combat.js`'s `placement:'inPlace'`; the boss keeps the original fresh-room placement, since the objective room is never explored |
 
 ## Superseded
 

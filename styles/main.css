@@ -166,6 +166,10 @@ button.selected { border-color: var(--focus); background: #3d3128; }
   font-size: 15px;
 }
 
+/* Unrevealed fog: darker than even a known wall, so a wall and an unwalked floor cell read as
+   equally unknown — nothing about this shape hints at what's actually there. */
+.cell.unseen { background: #0a0806; border-color: #0a0806; border-radius: 2px; }
+
 /* Highlights must read against the lighter floor, not just against the wall. */
 .cell.reachable { background: #35502f; border-color: #5d8a4f; }
 .cell.targetable { background: #5c2c1e; border-color: var(--monster); }
@@ -176,6 +180,10 @@ button.selected { border-color: var(--focus); background: #3d3128; }
 .cell.hero .glyph { color: var(--hero); }
 .cell.monster .glyph { color: var(--monster); }
 .cell.downed .glyph { color: var(--ink-faint); }
+
+/* Sensed but unvisited content: a dim marker, deliberately quieter than the action highlights
+   above so it never competes with "you can act here" for attention. */
+.cell.sensed .sense-mark { color: var(--ink-faint); font-size: 15px; font-weight: 600; }
 
 /* A thin wound bar under each occupied cell, readable at a glance without numbers. */
 .cell .bar {

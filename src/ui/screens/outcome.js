@@ -15,10 +15,13 @@ import { renderLog } from '../hud.js';
 export function outcomeScreen({ session, onAgain }) {
   const won = session.phase === 'victory';
   const survivors = session.party.filter((h) => h.alive);
-  const rooms = session.dungeon.current + 1;
+  // The entrance is never shown or counted (startSession walks straight past it) — see the same
+  // adjustment in delve.js's header.
+  const rooms = session.dungeon.current;
+  const totalRooms = session.dungeon.depth - 1;
 
   const rows = [
-    ['Rooms cleared', `${rooms} of ${session.dungeon.depth}`],
+    ['Rooms cleared', `${rooms} of ${totalRooms}`],
     ['Gold recovered', String(session.gold)],
     ['Survivors', `${survivors.length} of ${session.party.length}`],
     ['Seed', session.seed],
