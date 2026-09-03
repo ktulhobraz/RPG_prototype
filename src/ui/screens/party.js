@@ -1,7 +1,8 @@
 // @ts-check
 /** Party selection: pick four heroes, then descend. */
 
-import { el, replace } from '../dom.js';
+import { el } from '../dom.js';
+import { heroSprite, spriteNode } from '../sprites.js';
 
 export const PARTY_SIZE = 4;
 
@@ -20,9 +21,9 @@ export function partyScreen({ heroes, selected, hasSave, onToggle, onStart, onCo
 
   const roster = el('div.roster', {}, heroes.map((hero) => {
     const isSelected = selected.includes(hero.id);
-    // A full party locks the remaining choices rather than silently swapping someone out.
     const locked = !isSelected && remaining === 0;
     const p = hero.profile;
+    const portrait = spriteNode(heroSprite(hero.id), 'roster-portrait');
 
     return el('button.panel.roster-item', {
       type: 'button',
@@ -33,7 +34,7 @@ export function partyScreen({ heroes, selected, hasSave, onToggle, onStart, onCo
         isSelected ? selected.filter((id) => id !== hero.id) : [...selected, hero.id],
       ),
     }, [
-      el('span.mark', { text: hero.glyph ?? hero.name[0] }),
+      el('span.mark', {}, [portrait ?? el('span', { text: hero.glyph ?? hero.name[0] })]),
       el('span.body', {}, [
         el('div.who', { text: hero.name }),
         el('div.blurb', { text: hero.blurb ?? '' }),
