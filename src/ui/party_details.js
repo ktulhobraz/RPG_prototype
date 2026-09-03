@@ -3,7 +3,7 @@
 
 import { el } from './dom.js';
 import { abilitiesOf, usesRemaining } from '../core/abilities.js';
-import { heroSprite, itemSprite, spriteNode } from './sprites.js';
+import { heroTokenSprite, itemSprite, spriteNode } from './sprites.js';
 
 const STAT_ROWS = [
   ['ws', 'WS'], ['bs', 'BS'], ['str', 'STR'], ['tou', 'TOU'],
@@ -83,7 +83,7 @@ function overlay(title, body, onClose, ariaLabel) {
 
 /** @param {{hero:any,onClose:()=>void}} args */
 export function heroDetailsModal({ hero, onClose }) {
-  const portrait = spriteNode(heroSprite(hero.dataId), 'character-portrait');
+  const portrait = spriteNode(heroTokenSprite(hero.dataId), 'character-portrait');
   return overlay(hero.name, [
     el('div.character-summary', {}, [
       el('div.character-glyph', {}, [portrait ?? el('span', { text: hero.glyph })]),
