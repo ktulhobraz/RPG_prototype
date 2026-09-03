@@ -1,13 +1,31 @@
-/* Generated prototype art atlas. One WebP, 8 columns x 6 rows. */
+/* Purpose-specific generated art atlases. */
 .sprite {
   display: inline-block;
-  background-image: url('../assets/game-atlas-v2.webp');
   background-repeat: no-repeat;
-  background-size: 800% 600%;
   background-position: var(--sprite-x, 0%) var(--sprite-y, 0%);
   pointer-events: none;
   flex: none;
 }
+
+.sprite.atlas-hero-portraits {
+  background-image: url('../assets/art/hero-portraits.webp');
+  background-size: 300% 200%;
+}
+.sprite.atlas-hero-tokens {
+  background-image: url('../assets/art/hero-tokens.webp');
+  background-size: 300% 200%;
+}
+.sprite.atlas-enemy-tokens {
+  background-image: url('../assets/art/enemy-tokens.webp');
+  background-size: 400% 200%;
+}
+.sprite.atlas-tiles-r0 { background-image: url('../assets/art/tiles-row0.webp'); background-size: 400% 100%; }
+.sprite.atlas-tiles-r1 { background-image: url('../assets/art/tiles-row1.webp'); background-size: 400% 100%; }
+.sprite.atlas-tiles-r2 { background-image: url('../assets/art/tiles-row2.webp'); background-size: 400% 100%; }
+.sprite.atlas-items-r0 { background-image: url('../assets/art/items-row0.webp'); background-size: 400% 100%; }
+.sprite.atlas-items-r1 { background-image: url('../assets/art/items-row1.webp'); background-size: 400% 100%; }
+.sprite.atlas-items-r2 { background-image: url('../assets/art/items-row2.webp'); background-size: 400% 100%; }
+.sprite.atlas-items-r3 { background-image: url('../assets/art/items-row3.webp'); background-size: 400% 100%; }
 
 .cell { overflow: hidden; }
 .cell .terrain-sprite {
