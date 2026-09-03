@@ -27,6 +27,7 @@ import { serialize } from './save.js';
  * @property {any[]} rooms
  * @property {any[]} events
  * @property {any[]} items
+ * @property {import('./corruption.js').CorruptionTheme[]} corruptions
  */
 
 /**
@@ -75,6 +76,7 @@ export function startSession({ content, heroIds, seed, rulesId = DEFAULT_RULE_SY
   const dungeon = createDungeon({
     rooms: content.rooms,
     monsters: content.monsters,
+    corruptions: content.corruptions,
     rng,
     depth,
     partySize: party.length,

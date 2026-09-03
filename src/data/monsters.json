@@ -4,6 +4,7 @@
     "name": "Ratkin Scavenger",
     "role": "melee",
     "glyph": "r",
+    "faction": "vermin",
     "profile": {
       "ws": 3,
       "bs": 2,
@@ -22,6 +23,7 @@
     "name": "Ratkin Slinger",
     "role": "ranged",
     "glyph": "s",
+    "faction": "vermin",
     "profile": {
       "ws": 2,
       "bs": 4,
@@ -36,10 +38,30 @@
     "tier": 1
   },
   {
+    "id": "ratkin_brute",
+    "name": "Ratkin Brute",
+    "role": "melee",
+    "glyph": "R",
+    "faction": "vermin",
+    "profile": {
+      "ws": 4,
+      "bs": 1,
+      "str": 4,
+      "tou": 4,
+      "wounds": 10,
+      "init": 2,
+      "attacks": 1,
+      "move": 4
+    },
+    "xpValue": 24,
+    "tier": 2
+  },
+  {
     "id": "goblin",
     "name": "Cave Goblin",
     "role": "melee",
     "glyph": "g",
+    "faction": "ruin",
     "profile": {
       "ws": 2,
       "bs": 3,
@@ -58,6 +80,7 @@
     "name": "Horned Beastman",
     "role": "melee",
     "glyph": "B",
+    "faction": "ruin",
     "profile": {
       "ws": 4,
       "bs": 2,
@@ -72,10 +95,30 @@
     "tier": 2
   },
   {
+    "id": "husk",
+    "name": "Shambling Husk",
+    "role": "melee",
+    "glyph": "h",
+    "faction": "undead",
+    "profile": {
+      "ws": 2,
+      "bs": 1,
+      "str": 2,
+      "tou": 3,
+      "wounds": 5,
+      "init": 1,
+      "attacks": 1,
+      "move": 2
+    },
+    "xpValue": 8,
+    "tier": 1
+  },
+  {
     "id": "risen",
     "name": "Risen Dead",
     "role": "melee",
     "glyph": "z",
+    "faction": "undead",
     "profile": {
       "ws": 2,
       "bs": 2,
@@ -90,10 +133,49 @@
     "tier": 2
   },
   {
+    "id": "tallow_cultist",
+    "name": "Tallow Cultist",
+    "role": "melee",
+    "glyph": "c",
+    "faction": "glutton",
+    "profile": {
+      "ws": 2,
+      "bs": 2,
+      "str": 2,
+      "tou": 3,
+      "wounds": 5,
+      "init": 3,
+      "attacks": 1,
+      "move": 4
+    },
+    "xpValue": 9,
+    "tier": 1
+  },
+  {
+    "id": "bloat_spawn",
+    "name": "Bloat Spawn",
+    "role": "melee",
+    "glyph": "o",
+    "faction": "glutton",
+    "profile": {
+      "ws": 3,
+      "bs": 1,
+      "str": 4,
+      "tou": 4,
+      "wounds": 11,
+      "init": 1,
+      "attacks": 1,
+      "move": 2
+    },
+    "xpValue": 22,
+    "tier": 2
+  },
+  {
     "id": "warlock",
     "name": "Pit Warlock",
     "role": "caster",
     "glyph": "k",
+    "faction": "ruin",
     "profile": {
       "ws": 3,
       "bs": 4,

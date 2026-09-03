@@ -8,9 +8,12 @@
  */
 
 import { floorCells, isPassable } from './grid.js';
+import { rollCorruption, rollEncounterSpawns } from './corruption.js';
 
 /** @typedef {import('./rng.js').Rng} Rng */
 /** @typedef {import('./grid.js').Tile} Tile */
+/** @typedef {import('./corruption.js').Corruption} Corruption */
+/** @typedef {import('./corruption.js').CorruptionTheme} CorruptionTheme */
 
 /**
  * @typedef {object} Encounter
@@ -35,6 +38,7 @@ import { floorCells, isPassable } from './grid.js';
  * @property {Room[]} rooms
  * @property {number} current
  * @property {number} depth
+ * @property {Corruption} corruption   Fixed for the whole delve; see corruption.js.
  */
 
 /** Chance weights for what a non-objective room holds. */
@@ -60,48 +64,19 @@ function weightedPick(rng, table) {
 }
 
 /**
- * Build the monster group for a room. Difficulty rises with depth, so the last rooms before the
- * objective are meaningfully harder than the first.
- *
- * @param {any[]} monsters
- * @param {Rng} rng
- * @param {number} depthRatio  0 at the entrance, 1 at the objective.
- * @param {number} partySize
- * @returns {{ id: string, count: number }[]}
- */
-function rollSpawns(monsters, rng, depthRatio, partySize) {
-  const tierCap = depthRatio > 0.6 ? 2 : 1;
-  const pool = monsters.filter((m) => (m.tier ?? 1) <= tierCap && m.role !== 'boss');
-  if (pool.length === 0) return [];
-
-  // Budget scales with party size so a four-hero party is not swamped by a two-hero encounter.
-  // The coefficients are set by simulation, not taste: see tests/sim.js and docs/design/balance.md.
-  const budget = Math.max(2, Math.round(partySize * (0.5 + depthRatio * 0.6)));
-  /** @type {Map<string, number>} */
-  const groups = new Map();
-  let spent = 0;
-  let guard = 0;
-
-  while (spent < budget && guard++ < 40) {
-    const monster = rng.pick(pool);
-    const cost = (monster.tier ?? 1) >= 2 ? 2 : 1;
-    if (spent + cost > budget + 1) break;
-    groups.set(monster.id, (groups.get(monster.id) ?? 0) + 1);
-    spent += cost;
-  }
-  return [...groups].map(([id, count]) => ({ id, count }));
-}
-
-/**
  * @param {object} args
  * @param {any[]} args.rooms      Room tile records from data.
  * @param {any[]} args.monsters   Monster records from data.
+ * @param {CorruptionTheme[]} args.corruptions   Corruption theme records from data.
  * @param {Rng} args.rng
  * @param {number} [args.depth]   Number of rooms including entrance and objective.
  * @param {number} [args.partySize]
  * @returns {Dungeon}
  */
-export function createDungeon({ rooms, monsters, rng, depth = 8, partySize = 4 }) {
+export function createDungeon({ rooms, monsters, corruptions, rng, depth = 8, partySize = 4 }) {
+  const corruption = rollCorruption(rng, corruptions);
+  const theme = corruptions.find((t) => t.id === corruption.themeId);
+
   const entranceTile = rooms.find((r) => r.kind === 'entrance');
   const objectiveTile = rooms.find((r) => r.kind === 'objective');
   if (!entranceTile || !objectiveTile) {
@@ -141,7 +116,9 @@ export function createDungeon({ rooms, monsters, rng, depth = 8, partySize = 4 }
     /** @type {Encounter} */
     let encounter;
     if (pick.kind === 'monsters') {
-      const spawns = rollSpawns(monsters, rng, depthRatio, partySize);
+      const spawns = rollEncounterSpawns(monsters, rng, {
+        depthRatio, partySize, intensity: corruption.intensity, theme,
+      });
       encounter = spawns.length ? { kind: 'monsters', spawns } : { kind: 'empty' };
     } else if (pick.kind === 'trap') {
       encounter = { kind: 'trap', severity: 1 + Math.round(depthRatio * 2) };
@@ -169,15 +146,20 @@ export function createDungeon({ rooms, monsters, rng, depth = 8, partySize = 4 }
       spawns: [
         { id: boss.id, count: 1 },
         // A small escort only. The boss should be the fight; a full second encounter stacked on
-        // top of it just ends delves that were otherwise going well.
-        ...rollSpawns(monsters, rng, 0.4, 1),
+        // top of it just ends delves that were otherwise going well. Themed like everything
+        // else in this delve, so the escort doesn't clash with what led up to it.
+        ...rollEncounterSpawns(monsters, rng, {
+          depthRatio: 0.4, partySize: 1, intensity: corruption.intensity, theme,
+        }),
       ],
     },
     cleared: false,
     visited: false,
   });
 
-  return { seed: String(rng.state()), rooms: built, current: 0, depth: built.length };
+  return {
+    seed: String(rng.state()), rooms: built, current: 0, depth: built.length, corruption,
+  };
 }
 
 /** @param {Dungeon} dungeon */

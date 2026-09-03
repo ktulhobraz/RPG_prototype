@@ -12,6 +12,7 @@ export function loadTestContent() {
     rooms: read('rooms'),
     events: read('events'),
     items: read('items'),
+    corruptions: read('corruptions'),
   });
 }
 

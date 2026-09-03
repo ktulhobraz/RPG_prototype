@@ -41,6 +41,7 @@ test('a dungeon always ends in a reachable objective room', () => {
     const dungeon = createDungeon({
       rooms: content.rooms,
       monsters: content.monsters,
+      corruptions: content.corruptions,
       rng: createRng(`dungeon-${i}`),
       depth: 8,
       partySize: 4,
@@ -51,12 +52,15 @@ test('a dungeon always ends in a reachable objective room', () => {
     assert.equal(last.tile.kind, 'objective');
     assert.equal(last.encounter.kind, 'boss');
     assert.ok(last.encounter.spawns.some((s) => s.id === 'troll'), 'the boss must be present');
+    assert.ok(content.corruptions.some((t) => t.id === dungeon.corruption.themeId),
+      'the rolled corruption must be one of the authored themes');
+    assert.ok(dungeon.corruption.intensity > 0, 'intensity must be a positive multiplier');
   }
 });
 
 test('the party cannot walk past monsters it has not cleared', () => {
   const dungeon = createDungeon({
-    rooms: content.rooms, monsters: content.monsters,
+    rooms: content.rooms, monsters: content.monsters, corruptions: content.corruptions,
     rng: createRng('gate'), depth: 5, partySize: 4,
   });
   const fight = dungeon.rooms.findIndex((r) => !r.cleared);
