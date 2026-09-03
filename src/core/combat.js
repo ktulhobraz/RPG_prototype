@@ -96,6 +96,8 @@ export function createCombat({ tile, party, spawns, monsterData, rules, rng }) {
     status: 'active',
     rng,
   };
+  const foes = actors.filter((a) => a.side === 'monster').length;
+  pushLog(combat, `${foes} ${foes === 1 ? 'enemy blocks' : 'enemies block'} the way.`);
   beginTurn(combat);
   return combat;
 }

@@ -11,13 +11,12 @@ All content is data. The engine imports no setting vocabulary.
   "role": "melee",
   "profile": { "ws": 4, "bs": 3, "str": 4, "tou": 4, "wounds": 12,
                "init": 3, "attacks": 1, "move": 4 },
-  "overrides": { "d100": { "ws": 55 } },
+  
   "abilities": ["cleave"],
   "glyph": "W"
 }
 ```
 
-`overrides.d100` is optional and only needed when derivation produces a bad value.
 `glyph` is a single character drawn on the board; no image assets are used.
 
 ## `rooms.json`

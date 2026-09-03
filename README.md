@@ -18,23 +18,22 @@ opened as a `file://` URL:
 python3 -m http.server 8080   # then open http://localhost:8080
 ```
 
-## Two rule systems
+## Rules
 
-Switch between them in Settings:
+Fast tabletop-style d6 resolution: cross-referenced to-hit, `d6 + Strength` damage reduced by
+Toughness, criticals on a natural 6. All of it lives behind one contract in `src/core/rules/`, so
+the combat engine holds no dice logic of its own. See [docs/design/rules.md](docs/design/rules.md).
 
-- **d6** — fast tabletop-style resolution. Default, and the balance reference.
-- **d100** — percentile resolution with success levels and criticals on doubles. Experimental.
-
-Creature stats are authored once in the `d6` scale; the `d100` profile is derived from it. Both
-systems run on the same seed, so the same delve can be compared side by side.
+Delves run from a seed, so a run can be replayed exactly — which is what makes the balance
+simulation and the tests meaningful.
 
 ## Development
 
 Zero dependencies. Tests use Node's built-in runner:
 
 ```bash
-npm test          # unit and contract tests
-npm run sim       # balance simulation across many seeds, per rule system
+npm test          # unit, contract and end-to-end delve tests
+npm run sim 600   # play 600 delves headlessly and report win rate and attrition
 ```
 
 Architecture rule: `src/core/**` is pure logic — no `document`, no `window`, no `localStorage`,

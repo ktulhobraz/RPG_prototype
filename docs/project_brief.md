@@ -34,18 +34,15 @@ a fixed party of four, turn-based combat on a small grid, event rolls between ro
 5. **Objective room** — boss fight, loot, end of the delve.
 6. **Outcome** — result screen, experience and gold, progress saved locally.
 
-## Two rule systems
+## Rules
 
-The prototype ships **two interchangeable rule systems**, selected in settings:
+Fast tabletop-style **d6** resolution: to-hit cross-reference, `d6 + Strength` damage, Toughness
+subtracted, Wounds removed. Every roll is delegated to a rule system behind a single contract, so
+`combat.js` contains no dice logic.
 
-- **`d6`** — fast tabletop-style resolution: to-hit cross-reference, `d6 + Strength` damage,
-  Toughness subtracted, Wounds removed. **Default and balance reference.**
-- **`d100`** — percentile resolution with success levels, advantage and critical hits on doubles.
-  Functional but **experimental** until its own balance pass.
-
-Creature statistics are authored **once** in the canonical `d6` scale. The `d100` profile is
-**derived deterministically** from it, with optional per-creature overrides. Content is written once;
-only the resolver differs.
+A second, percentile system shipped briefly and was **removed**: it doubled the balancing surface
+for one game and measured far worse (1.7% win rate against d6's 7.5%). The contract survives
+because it keeps dice out of the engine, not because a replacement is planned.
 
 ## v0.1 target — vertical slice
 
@@ -53,7 +50,7 @@ Prove one complete delve end-to-end on a phone. Scope ceiling:
 
 - 1 dungeon, 4 playable heroes, 5-6 monster types
 - 8-10 room tiles, ~12 events, ~15 items
-- Both rule systems playable
+- Balance verified by simulation, not by feel
 
 ## Technical direction
 
