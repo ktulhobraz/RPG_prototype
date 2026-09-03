@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { startSession, assignStashItem, shortRest, acknowledge } from '../src/core/state.js';
+import { startSession, assignStashItem, shortRest, acknowledge, restoreSession } from '../src/core/state.js';
 import { autoExplore } from '../src/core/autoplay.js';
 import { currentRoom } from '../src/core/dungeon.js';
-import { serialize, restoreSession } from '../src/core/save.js';
+import { serialize } from '../src/core/save.js';
 import { loadTestContent, DEFAULT_PARTY } from './helpers.js';
 
 test('an exploration ambush opens on a dedicated battlefield', () => {
