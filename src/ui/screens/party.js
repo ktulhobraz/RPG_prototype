@@ -2,7 +2,7 @@
 /** Party selection: pick four heroes, then descend. */
 
 import { el } from '../dom.js';
-import { heroSprite, spriteNode } from '../sprites.js';
+import { heroTokenSprite, spriteNode } from '../sprites.js';
 
 export const PARTY_SIZE = 4;
 
@@ -23,7 +23,7 @@ export function partyScreen({ heroes, selected, hasSave, onToggle, onStart, onCo
     const isSelected = selected.includes(hero.id);
     const locked = !isSelected && remaining === 0;
     const p = hero.profile;
-    const portrait = spriteNode(heroSprite(hero.id), 'roster-portrait');
+    const portrait = spriteNode(heroTokenSprite(hero.id), 'roster-portrait');
 
     return el('button.panel.roster-item', {
       type: 'button',
