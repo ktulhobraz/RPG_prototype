@@ -3,7 +3,7 @@
 
 import { el, woundClass } from './dom.js';
 import { abilitiesOf, usesRemaining } from '../core/abilities.js';
-import { heroSprite, spriteNode } from './sprites.js';
+import { heroTokenSprite, spriteNode } from './sprites.js';
 
 /** @typedef {import('../core/entities.js').Actor} Actor */
 
@@ -30,7 +30,7 @@ export function renderParty(party, active, onHero) {
       }),
     ]);
 
-    const portrait = spriteNode(heroSprite(hero.dataId), 'hero-portrait');
+    const portrait = spriteNode(heroTokenSprite(hero.dataId), 'hero-portrait');
     return el('div', { class: classes.join(' ') }, [
       el('div.hero-card-main', {}, [
         el('button.hero-avatar', {
