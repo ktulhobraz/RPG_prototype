@@ -1,15 +1,16 @@
 // @ts-check
-/** Delve screen: exploration stays visible while combat opens in a separate overlay. */
+/** Delve screen: exploration stays visible while combat and party details open as overlays. */
 
 import { el } from '../dom.js';
 import { renderBoard } from '../board.js';
 import { renderParty, renderLog } from '../hud.js';
+import { heroDetailsModal, stashModal } from '../party_details.js';
 import { currentRoom } from '../../core/dungeon.js';
 import { activeActor, attackOptions, movementOptions, abilityOptions } from '../../core/combat.js';
 import { abilitiesOf, usesRemaining } from '../../core/abilities.js';
 import { stepOptions } from '../../core/exploration.js';
 
-export function delveScreen({ session, pendingAbility, actions }) {
+export function delveScreen({ session, pendingAbility, panel, actions }) {
   const room = currentRoom(session.dungeon);
   const depth = `Room ${session.dungeon.current} of ${session.dungeon.depth - 1}`;
   const header = el('div.header', {}, [
@@ -17,12 +18,22 @@ export function delveScreen({ session, pendingAbility, actions }) {
     el('span.meta', {}, [
       el('span', { text: depth }), el('span', { text: '  ' }),
       el('span.gold', { text: String(session.gold) }),
-      el('span', { text: `  Stash ${session.stash.length}` }),
     ]),
+    el('button.inventory-button', {
+      type: 'button',
+      text: `Party inventory (${session.stash.length})`,
+      onClick: actions.openStash,
+    }),
   ]);
   const body = exploreBody(session, actions);
   if (session.phase === 'combat' && session.combat) {
     body.push(combatModal(session, pendingAbility, actions));
+  }
+  if (panel?.kind === 'hero') {
+    const hero = session.party.find((candidate) => candidate.id === panel.heroId);
+    if (hero) body.push(heroDetailsModal({ hero, onClose: actions.closePanel }));
+  } else if (panel?.kind === 'stash') {
+    body.push(stashModal({ stash: session.stash, onClose: actions.closePanel }));
   }
   return el('div.stack', { style: 'flex:1; min-height:0;' }, [header, ...body]);
 }
@@ -60,7 +71,7 @@ function exploreBody(session, actions) {
     actionNodes.push(el('button.primary', { type: 'button', text: 'Continue', onClick: actions.acknowledge }));
   }
 
-  return [board, renderParty(session.party), renderLog(session.journal),
+  return [board, renderParty(session.party, undefined, actions.openHero), renderLog(session.journal),
     el('p.hint', { class: warn ? 'warn' : '', text: hint }),
     el('div.actions', {}, actionNodes)];
 }
@@ -126,6 +137,6 @@ function combatBody(session, pendingAbility, actions) {
     el('button', { type: 'button', text: 'Brace', disabled: !isHeroTurn || combat.hasActed, onClick: actions.brace }),
     el('button.primary', { type: 'button', text: 'End turn', disabled: !isHeroTurn, onClick: actions.endTurn }),
   ]);
-  return [board, renderParty(session.party, isHeroTurn ? actor : undefined), renderLog(combat.log),
+  return [board, renderParty(session.party, isHeroTurn ? actor : undefined, actions.openHero), renderLog(combat.log),
     el('p.hint', { class: isHeroTurn ? '' : 'warn', text: hint }), bar];
 }
