@@ -17,7 +17,7 @@ import { normalizeProfile, applyMods } from './profile.js';
  * @property {string} id
  * @property {string} name
  * @property {Partial<CanonProfile>} profile
- * @property {{ d100?: object }} [overrides]
+ * 
  * @property {string[]} [abilities]
  * @property {string} [glyph]
  * @property {string} [role]
@@ -51,7 +51,7 @@ import { normalizeProfile, applyMods } from './profile.js';
 export function createActor(data, rules, options = {}) {
   const base = normalizeProfile(data.profile, data.id);
   const canon = options.mods?.length ? applyMods(base, options.mods) : base;
-  const profile = rules.toProfile(canon, data.overrides?.d100);
+  const profile = rules.toProfile(canon);
   // Wounds live on whichever scale the active system uses, so the pool comes from the profile.
   const maxWounds = profile.wounds ?? canon.wounds;
 

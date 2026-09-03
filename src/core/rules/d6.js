@@ -31,7 +31,6 @@ export function rangedTarget(bs) {
 export const d6System = {
   id: 'd6',
   name: 'Six-Sided',
-  experimental: false,
   summary: 'Fast tabletop resolution: d6 to hit, d6+Strength damage reduced by Toughness.',
 
   toProfile: (canon) => normalizeProfile(canon, 'd6 profile'),

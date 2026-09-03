@@ -1,0 +1,18 @@
+[
+  { "id": "heavy_blade", "name": "Heavy Blade", "slot": "weapon", "mods": { "str": 1 }, "value": 60 },
+  { "id": "twin_axes", "name": "Twin Axes", "slot": "weapon", "mods": { "ws": 1 }, "value": 70 },
+  { "id": "flail", "name": "Weighted Flail", "slot": "weapon", "mods": { "str": 1 }, "value": 50 },
+  { "id": "longbow", "name": "Longbow", "slot": "weapon", "mods": { "bs": 1 }, "value": 65 },
+  { "id": "throwing_knives", "name": "Throwing Knives", "slot": "weapon", "mods": { "bs": 1 }, "value": 40 },
+  { "id": "keen_dagger", "name": "Keen Dagger", "slot": "offhand", "mods": { "init": 1 }, "value": 30 },
+  { "id": "staff", "name": "Ashwood Staff", "slot": "weapon", "mods": { "init": 1 }, "value": 45 },
+  { "id": "shield", "name": "Battered Shield", "slot": "offhand", "mods": { "tou": 1 }, "value": 50 },
+  { "id": "lockpicks", "name": "Lockpicks", "slot": "tool", "mods": {}, "value": 25 },
+  { "id": "mail_shirt", "name": "Mail Shirt", "slot": "armour", "mods": { "tou": 1 }, "value": 80, "loot": true },
+  { "id": "plated_coat", "name": "Plated Coat", "slot": "armour", "mods": { "tou": 1, "move": -1 }, "value": 95, "loot": true },
+  { "id": "swift_boots", "name": "Swift Boots", "slot": "boots", "mods": { "move": 1 }, "value": 70, "loot": true },
+  { "id": "warding_charm", "name": "Warding Charm", "slot": "trinket", "mods": { "tou": 1 }, "value": 85, "loot": true },
+  { "id": "hunters_ring", "name": "Hunter's Ring", "slot": "trinket", "mods": { "bs": 1 }, "value": 75, "loot": true },
+  { "id": "grim_talisman", "name": "Grim Talisman", "slot": "trinket", "mods": { "ws": 1 }, "value": 90, "loot": true },
+  { "id": "vial_of_stitchwort", "name": "Vial of Stitchwort", "slot": "consumable", "mods": {}, "heals": 6, "value": 35, "loot": true }
+]

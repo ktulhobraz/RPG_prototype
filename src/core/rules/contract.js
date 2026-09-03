@@ -3,7 +3,7 @@
  * The contract every rule system implements. Types only — this module has no runtime behaviour.
  *
  * The combat engine talks to this shape and never branches on which system is active, which is
- * what lets d6 and d100 coexist without duplicating the engine or the content.
+ * what keeps dice logic out of the engine and confined to one file.
  */
 
 /** @typedef {import('../profile.js').CanonProfile} CanonProfile */
@@ -52,9 +52,8 @@
  * @typedef {object} RuleSystem
  * @property {string} id
  * @property {string} name
- * @property {boolean} experimental
  * @property {string} summary
- * @property {(canon: CanonProfile, overrides?: object) => any} toProfile
+ * @property {(canon: CanonProfile) => any} toProfile
  * @property {(combatants: Combatant[], rng: Rng) => string[]} rollInitiative
  * @property {(attacker: Combatant, defender: Combatant, ctx: AttackContext, rng: Rng) => AttackResult} resolveAttack
  * @property {(actor: Combatant, stat: keyof CanonProfile, difficulty: number, rng: Rng) => TestResult} resolveTest
