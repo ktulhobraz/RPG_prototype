@@ -33,6 +33,14 @@ test('party and sprite stylesheets are loaded by the page', () => {
   assert.match(html, /styles\/sprites\.css/);
 });
 
+test('current hero avatar UI uses the readable token atlas', () => {
+  for (const path of ['../src/ui/screens/party.js', '../src/ui/hud.js', '../src/ui/party_details.js']) {
+    const source = readFileSync(new URL(path, import.meta.url), 'utf8');
+    assert.match(source, /heroTokenSprite/);
+    assert.doesNotMatch(source, /heroSprite\(/);
+  }
+});
+
 test('purpose-specific generated art files are valid WebP and wired by CSS', async () => {
   const css = readFileSync(new URL('../styles/sprites.css', import.meta.url), 'utf8');
   for (const file of ART_FILES) {
