@@ -9,8 +9,9 @@ import { abilitiesOf, usesRemaining } from '../core/abilities.js';
 /**
  * @param {Actor[]} party
  * @param {Actor} [active]  The hero whose turn it is, highlighted.
+ * @param {(heroId:string)=>void} [onHero]
  */
-export function renderParty(party, active) {
+export function renderParty(party, active, onHero) {
   return el('div.party', {}, party.map((hero) => {
     const state = woundClass(hero.wounds, hero.maxWounds);
     const classes = ['hero-card'];
@@ -29,17 +30,26 @@ export function renderParty(party, active) {
     ]);
 
     return el('div', { class: classes.join(' ') }, [
-      el('div.name', {}, [
-        el('span', { text: hero.name }),
-        el('span', {
-          class: `wounds ${hero.alive ? state : ''}`,
-          text: hero.alive ? `${hero.wounds}/${hero.maxWounds}` : 'down',
+      el('div.hero-card-main', {}, [
+        el('button.hero-avatar', {
+          type: 'button', text: hero.glyph,
+          'aria-label': `Open ${hero.name} character sheet and inventory`,
+          onClick: onHero ? () => onHero(hero.id) : undefined,
         }),
+        el('div.hero-card-copy', {}, [
+          el('div.name', {}, [
+            el('span', { text: hero.name }),
+            el('span', {
+              class: `wounds ${hero.alive ? state : ''}`,
+              text: hero.alive ? `${hero.wounds}/${hero.maxWounds}` : 'down',
+            }),
+          ]),
+          el('div.faint', {
+            text: limited.length ? limited.join(' · ') : `level ${hero.level}`,
+            style: 'font-size:12px',
+          }),
+        ]),
       ]),
-      el('div.faint', {
-        text: limited.length ? limited.join(' · ') : `level ${hero.level}`,
-        style: 'font-size:12px',
-      }),
       track,
     ]);
   }));
@@ -51,12 +61,10 @@ export function renderParty(party, active) {
  */
 export function renderLog(lines, limit = 30) {
   const recent = lines.slice(-limit);
-  // An empty bordered box reads as a broken element rather than an empty one.
   const content = recent.length
     ? recent.map((line) => el('p', { text: line }))
     : [el('p.faint', { text: 'Nothing has happened yet.' })];
   const log = el('div.log', { role: 'log' }, content);
-  // Newest entry is at the bottom; scroll there after the node is in the document.
   queueMicrotask(() => { log.scrollTop = log.scrollHeight; });
   return log;
 }
