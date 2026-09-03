@@ -19,8 +19,17 @@ test('party and sprite stylesheets are loaded by the page', () => {
   assert.match(html, /styles\/sprites\.css/);
 });
 
-test('generated art atlas exists and covers canonical prototype content ids', async () => {
-  assert.equal(existsSync(new URL('../assets/game-atlas.webp', import.meta.url)), true);
+test('generated art atlas is a valid WebP and covers canonical prototype content ids', async () => {
+  const atlasUrl = new URL('../assets/game-atlas-v2.webp', import.meta.url);
+  assert.equal(existsSync(atlasUrl), true);
+  const atlas = readFileSync(atlasUrl);
+  assert.equal(atlas.subarray(0, 4).toString('ascii'), 'RIFF');
+  assert.equal(atlas.subarray(8, 12).toString('ascii'), 'WEBP');
+  assert.ok(atlas.length > 10_000, 'generated art atlas is unexpectedly small');
+
+  const css = readFileSync(new URL('../styles/sprites.css', import.meta.url), 'utf8');
+  assert.match(css, /game-atlas-v2\.webp/);
+
   const sprites = await import('../src/ui/sprites.js');
   for (const id of ['warrior', 'slayer', 'ranger', 'scholar', 'zealot', 'thief']) {
     assert.ok(sprites.heroSprite(id), `missing hero sprite for ${id}`);
