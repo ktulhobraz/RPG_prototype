@@ -71,7 +71,9 @@ const TERRAIN = Object.freeze({
 /** @param {SpriteCoord | null | undefined} coord */
 export function spriteStyle(coord) {
   if (!coord) return '';
-  return `--sprite-x:${coord[0]};--sprite-y:${coord[1]};`;
+  const x = (coord[0] / 7) * 100;
+  const y = (coord[1] / 5) * 100;
+  return `--sprite-x:${x}%;--sprite-y:${y}%;`;
 }
 
 /** @param {SpriteCoord | null | undefined} coord @param {string} [className] */
