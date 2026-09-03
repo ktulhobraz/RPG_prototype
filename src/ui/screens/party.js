@@ -14,9 +14,10 @@ export const PARTY_SIZE = 4;
  * @param {(ids: string[]) => void} args.onToggle
  * @param {() => void} args.onStart
  * @param {() => void} args.onContinue
+ * @param {() => void} args.onArena
  * @returns {HTMLElement}
  */
-export function partyScreen({ heroes, selected, hasSave, onToggle, onStart, onContinue }) {
+export function partyScreen({ heroes, selected, hasSave, onToggle, onStart, onContinue, onArena }) {
   const remaining = PARTY_SIZE - selected.length;
 
   const roster = el('div.roster', {}, heroes.map((hero) => {
@@ -56,6 +57,7 @@ export function partyScreen({ heroes, selected, hasSave, onToggle, onStart, onCo
     ]),
     roster,
     el('div.actions', {}, [
+      el('button', { type: 'button', text: 'Test arena', onClick: onArena }),
       hasSave && el('button', { type: 'button', text: 'Continue delve', onClick: onContinue }),
       el('button.primary', {
         type: 'button',
