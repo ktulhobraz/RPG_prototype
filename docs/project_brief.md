@@ -39,6 +39,10 @@ a fixed party of four, turn-based combat on a small grid, event rolls between ro
    initiative (`d6 + Initiative`) into one visible turn queue.
 5. **Loot / inventory** — gold is shared. Found items enter a party stash; the player can assign
    an item to a specific living hero, after which existing equipment modifiers affect that hero.
+   The delve UI exposes a dedicated **Party inventory** button for the stash. Tapping a hero's
+   party icon opens a read-only modal with that hero's current characteristics, abilities and
+   personal inventory. This is a visibility/character-sheet foundation, not yet a full equipment
+   management screen.
 6. **Rest / transition** — reaching the room exit passively restores injured living heroes by
    `d6 + (base Toughness - 3)`, minimum 1, then resolves the between-room event and continues.
 7. **Objective room** — boss encounter on a battlefield, loot, end of the delve.
@@ -70,7 +74,8 @@ Prove one complete delve end-to-end on a phone. Scope ceiling:
 - **Core logic separate from UI.** `src/core/**` is pure: no `document`, no `window`,
   no `localStorage`, no `Math.random()`. All randomness flows through an injected seeded PRNG.
 - **Mobile-first, touch-only.** Portrait layout, tap-to-move and tap-to-target, no hover,
-  no drag, no keyboard dependency.
+  no drag, no keyboard dependency. Party-character and inventory views use touch-friendly modal
+  overlays rather than introducing a separate navigation framework.
 - **Content separate from engine.** Every name, description and stat block lives in `src/data/*.json`.
   Exploration rooms and battlefields are authored data; the engine contains no setting-specific
   vocabulary. No third-party art, fonts or logos are used.
@@ -80,6 +85,7 @@ Prove one complete delve end-to-end on a phone. Scope ceiling:
 - Settlement or hub between delves, campaign structure, factions, economy
 - Procedural generation (the tile deck is authored, not generated)
 - Crafting and **complex** inventory rules such as encumbrance, weight, durability, capacity limits
+- Manual equip/unequip flows, drag-and-drop item management, equipment-slot UI
 - Deep NPC relationship simulation
 - Final PC engine or production stack (still unresolved)
 - Backend, accounts, cloud saves, online play
