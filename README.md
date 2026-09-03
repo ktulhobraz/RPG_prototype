@@ -27,6 +27,15 @@ the combat engine holds no dice logic of its own. See [docs/design/rules.md](doc
 Delves run from a seed, so a run can be replayed exactly — which is what makes the balance
 simulation and the tests meaningful.
 
+## Corruption and exploration
+
+Each delve is touched by one corruption — a theme and an intensity, fixed for the whole run
+(`src/core/corruption.js`, `src/data/corruptions.json`). The theme decides which monsters can
+appear; the intensity scales encounter size on top of the existing depth-based curve. Rooms are
+walked cell by cell under a fog of war (`src/core/exploration.js`): every newly-revealed cell
+risks an ambush, and traps or treasure sit on individual cells rather than the room as a whole.
+See [docs/design/balance.md](docs/design/balance.md) for the numbers this produces.
+
 ## Development
 
 Zero dependencies. Tests use Node's built-in runner:

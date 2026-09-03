@@ -9,7 +9,9 @@
 
 /** @typedef {import('./state.js').Content} Content */
 
-const FILES = /** @type {const} */ (['heroes', 'monsters', 'rooms', 'events', 'items']);
+const FILES = /** @type {const} */ (
+  ['heroes', 'monsters', 'rooms', 'events', 'items', 'corruptions']
+);
 
 /**
  * @param {(name: string) => Promise<any>} read
@@ -42,6 +44,16 @@ export function validateContent(content) {
   }
   if (!content.monsters.some((m) => m.role === 'boss')) {
     throw new Error('content: monsters must include a "boss"');
+  }
+  for (const theme of content.corruptions) {
+    // A theme with no tier-1 monster goes silent for the first half of any delve it's rolled
+    // for — the ambush pool comes up empty until depthRatio crosses 0.6. Catch it at load time.
+    const hasEarlyMonster = content.monsters.some(
+      (m) => theme.factions.includes(m.faction) && (m.tier ?? 1) === 1,
+    );
+    if (!hasEarlyMonster) {
+      throw new Error(`content: corruption "${theme.id}" has no tier-1 monster in its factions`);
+    }
   }
   for (const room of content.rooms) {
     if (room.cells.length !== room.h) {

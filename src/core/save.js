@@ -84,11 +84,17 @@ export function serialize(session) {
     gold: session.gold,
     phase: session.phase,
     roomIndex: session.dungeon.current,
+    corruption: session.dungeon.corruption,
     dungeon: session.dungeon.rooms.map((room) => ({
       tileId: room.tile.id,
       encounter: room.encounter,
       cleared: room.cleared,
       visited: room.visited,
+      fog: room.fog ? serializeFog(room.fog) : null,
+      // Set by a "spawn" event on a room not yet entered. Without this, saving in the window
+      // between that event firing and the party actually walking in would silently drop the
+      // guaranteed ambush it promised.
+      forceAmbush: room.forceAmbush ?? false,
     })),
     party: session.party.map((hero) => ({
       dataId: hero.dataId,
@@ -101,6 +107,18 @@ export function serialize(session) {
       canon: hero.canon,
       items: hero.items.map((i) => i.id),
     })),
+  };
+}
+
+/** Flatten a room's Sets/Map into JSON-safe arrays. @param {any} fog */
+function serializeFog(fog) {
+  return {
+    revealed: [...fog.revealed],
+    contentKnown: [...fog.contentKnown],
+    cellContent: [...fog.cellContent.entries()],
+    visitedCells: [...fog.visitedCells],
+    partyCell: fog.partyCell,
+    ambushSpent: fog.ambushSpent,
   };
 }
 

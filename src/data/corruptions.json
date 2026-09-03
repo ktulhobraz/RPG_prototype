@@ -1,0 +1,30 @@
+[
+  {
+    "id": "hollow_kin",
+    "name": "The Hollow Kin",
+    "blurb": "Something down here never finished dying.",
+    "factions": ["undead"],
+    "intensity": [0.6, 1.3]
+  },
+  {
+    "id": "wound_in_world",
+    "name": "The Wound in the World",
+    "blurb": "The stone itself has gone wrong, and what lives here has gone wrong with it.",
+    "factions": ["ruin"],
+    "intensity": [0.7, 1.4]
+  },
+  {
+    "id": "glutton_below",
+    "name": "The Glutton Below",
+    "blurb": "Everything down here is being eaten, slowly, by something that is never full.",
+    "factions": ["glutton"],
+    "intensity": [0.8, 1.5]
+  },
+  {
+    "id": "gnaw_horde",
+    "name": "The Gnaw-Horde",
+    "blurb": "The walls move. The walls are not walls.",
+    "factions": ["vermin"],
+    "intensity": [0.5, 1.2]
+  }
+]

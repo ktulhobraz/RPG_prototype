@@ -9,7 +9,7 @@
 
 import { loadContent } from '../core/content.js';
 import {
-  startSession, explore, acknowledge, endHeroTurn, runAiTurns, restoreSession, finish,
+  startSession, step as stepIntent, acknowledge, endHeroTurn, runAiTurns, restoreSession, finish,
 } from '../core/state.js';
 import {
   activeActor, moveTo, attack, defend, useAbility, attackOptions,
@@ -39,8 +39,8 @@ const ui = {
 /* ---------- intents ---------- */
 
 const actions = {
-  explore() {
-    explore(ui.session);
+  step(cell) {
+    stepIntent(ui.session, cell);
     persist();
     render();
     scheduleAi();

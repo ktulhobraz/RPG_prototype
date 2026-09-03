@@ -13,6 +13,7 @@ import { renderParty, renderLog } from '../hud.js';
 import { currentRoom } from '../../core/dungeon.js';
 import { activeActor, attackOptions, movementOptions, abilityOptions } from '../../core/combat.js';
 import { abilitiesOf, usesRemaining } from '../../core/abilities.js';
+import { stepOptions } from '../../core/exploration.js';
 
 /** @typedef {import('../../core/state.js').Session} Session */
 
@@ -25,7 +26,9 @@ import { abilitiesOf, usesRemaining } from '../../core/abilities.js';
  */
 export function delveScreen({ session, pendingAbility, actions }) {
   const room = currentRoom(session.dungeon);
-  const depth = `Room ${session.dungeon.current + 1} of ${session.dungeon.depth}`;
+  // The entrance is never shown (startSession walks straight past it), so it doesn't count
+  // toward the displayed total either — the first room the party actually sees reads "1 of N".
+  const depth = `Room ${session.dungeon.current} of ${session.dungeon.depth - 1}`;
 
   const header = el('div.header', {}, [
     el('h1', { text: room.name }),
@@ -51,31 +54,50 @@ export function delveScreen({ session, pendingAbility, actions }) {
  */
 function exploreBody(session, actions) {
   const room = currentRoom(session.dungeon);
-  const board = renderBoard({ tile: room.tile, actors: [] });
+  const walking = session.phase === 'explore' && Boolean(room.fog);
 
-  let hint = 'The way ahead is clear.';
-  let label = 'Press on';
-  let onAct = actions.explore;
+  // Tap-to-move: a highlighted, already-revealed neighbour cell is the only thing offered —
+  // stepOptions already excludes walls, so nothing more needs filtering here.
+  const reachable = walking
+    ? new Set(stepOptions(room.tile, room.fog).map((c) => `${c.x},${c.y}`))
+    : new Set();
+
+  const board = renderBoard({
+    tile: room.tile,
+    actors: [],
+    fog: room.fog ?? undefined,
+    reachable,
+    onCell: walking ? ({ x, y }) => actions.step({ x, y }) : undefined,
+  });
+
+  let hint = 'Tap a lit cell to move.';
+  let warn = false;
+  let acknowledgeBar = null;
 
   if (session.phase === 'event') {
     hint = session.pending?.event?.text ?? 'Something happens.';
-    label = 'Go on';
-    onAct = actions.acknowledge;
+    warn = true;
+    acknowledgeBar = { label: 'Go on', onAct: actions.acknowledge };
   } else if (session.phase === 'loot') {
     hint = (session.pending?.lines ?? ['You find something.']).join(' ');
-    label = 'Take it';
-    onAct = actions.acknowledge;
+    acknowledgeBar = { label: 'Take it', onAct: actions.acknowledge };
   }
+
+  const actionsBar = acknowledgeBar
+    ? el('div.actions', {}, [
+        el('button', { type: 'button', text: 'Abandon', onClick: actions.abandon }),
+        el('button.primary', { type: 'button', text: acknowledgeBar.label, onClick: acknowledgeBar.onAct }),
+      ])
+    : el('div.actions', {}, [
+        el('button', { type: 'button', text: 'Abandon', onClick: actions.abandon }),
+      ]);
 
   return [
     board,
     renderParty(session.party),
     renderLog(session.journal),
-    el('p.hint', { class: session.phase === 'event' ? 'warn' : '', text: hint }),
-    el('div.actions', {}, [
-      el('button', { type: 'button', text: 'Abandon', onClick: actions.abandon }),
-      el('button.primary', { type: 'button', text: label, onClick: onAct }),
-    ]),
+    el('p.hint', { class: warn ? 'warn' : '', text: hint }),
+    actionsBar,
   ];
 }
 

@@ -10,12 +10,14 @@
 import { createRng, restoreRng } from './rng.js';
 import { getRuleSystem, DEFAULT_RULE_SYSTEM } from './rules/index.js';
 import { createActor, healActor, damageActor } from './entities.js';
-import { createDungeon, currentRoom, isLastRoom, advance } from './dungeon.js';
+import { createDungeon, currentRoom, isLastRoom, advance, depthRatioOf } from './dungeon.js';
 import { createCombat, runMonsterTurn, endTurn, activeActor, checkEnd } from './combat.js';
 import { rollEvent, selectTargets } from './events.js';
 import { rollTreasure, grantItem, chooseRecipient } from './loot.js';
 import { awardXp, encounterXp } from './progression.js';
 import { trapDamageFor } from './abilities.js';
+import { rollEncounterSpawns } from './corruption.js';
+import { enterRoom, stepOptions, stepInto } from './exploration.js';
 import { serialize } from './save.js';
 
 /** @typedef {import('./entities.js').Actor} Actor */
@@ -27,6 +29,7 @@ import { serialize } from './save.js';
  * @property {any[]} rooms
  * @property {any[]} events
  * @property {any[]} items
+ * @property {import('./corruption.js').CorruptionTheme[]} corruptions
  */
 
 /**
@@ -75,6 +78,7 @@ export function startSession({ content, heroIds, seed, rulesId = DEFAULT_RULE_SY
   const dungeon = createDungeon({
     rooms: content.rooms,
     monsters: content.monsters,
+    corruptions: content.corruptions,
     rng,
     depth,
     partySize: party.length,
@@ -86,9 +90,16 @@ export function startSession({ content, heroIds, seed, rulesId = DEFAULT_RULE_SY
     combat: null,
     phase: 'explore',
     gold: 0,
-    journal: [`The party enters ${currentRoom(dungeon).name}.`],
+    journal: [],
     pending: null,
   };
+
+  // The entrance is never walked — it starts cleared/visited by construction — so the delve's
+  // first real interaction is stepping into the first middle room.
+  advance(dungeon);
+  const room = currentRoom(dungeon);
+  room.fog = enterRoom(room.tile, rng, { depthRatio: depthRatioOf(room, dungeon), party });
+  journal(session, `The party enters ${room.name}.`);
   return session;
 }
 
@@ -99,19 +110,101 @@ export function journal(session, line) {
 }
 
 /**
- * Move deeper. Rolls an event first; if one fires, the party must acknowledge it before the
- * next room resolves, which is what gives events their beat.
+ * Move the party one cell within the current room. This is the single entry point for spatial
+ * exploration — the UI's tap-to-move and the balance simulation's scripted walker both call it.
+ *
+ * `cell` must be a legal step per `stepOptions` (a passable 4-way neighbour of where the party
+ * is standing); an illegal target is silently ignored rather than thrown, so a stale UI tap
+ * racing a phase change is harmless.
  *
  * @param {Session} session
+ * @param {{x: number, y: number}} cell
  * @returns {Session}
  */
-export function explore(session) {
+export function step(session, cell) {
   if (session.phase !== 'explore') return session;
+  const room = currentRoom(session.dungeon);
+  if (!room.fog) return session; // the entrance/objective have no walkable fog
 
-  if (isLastRoom(session.dungeon) && currentRoom(session.dungeon).cleared) {
-    return finish(session, 'victory');
+  const legal = stepOptions(room.tile, room.fog).some((c) => c.x === cell.x && c.y === cell.y);
+  if (!legal) return session;
+
+  const dungeon = session.dungeon;
+  const result = stepInto(room.tile, room.fog, session.rng, {
+    cell, party: session.party, intensity: dungeon.corruption.intensity,
+  });
+
+  if (result.kind === 'ambush') return spawnAmbush(session, room);
+  if (result.kind === 'trap') return springTrap(session, result.severity);
+  if (result.kind === 'treasure') return grantTreasure(session, result.severity);
+  if (result.kind === 'exit') return crossDoor(session);
+  return session; // plain move
+}
+
+/**
+ * Resolve an ambush rolled by `stepInto`: build the encounter from the delve's corruption theme
+ * and start an in-place fight exactly where the party is standing.
+ * @param {Session} session @param {import('./dungeon.js').Room} room
+ */
+function spawnAmbush(session, room) {
+  const dungeon = session.dungeon;
+  const theme = session.content.corruptions.find((t) => t.id === dungeon.corruption.themeId);
+  const spawns = rollEncounterSpawns(session.content.monsters, session.rng, {
+    depthRatio: depthRatioOf(room, dungeon),
+    partySize: session.party.filter((h) => h.alive).length,
+    intensity: dungeon.corruption.intensity,
+    theme,
+  });
+
+  if (spawns.length === 0) {
+    // The theme's pool was empty at this depth — content.js's tier-1 guard should make this
+    // unreachable in practice, but a near-miss beats a fight that spawns nothing.
+    journal(session, 'Something moves nearby, then thinks better of it.');
+    return session;
   }
 
+  room.cleared = false;
+  // Exploration tracks the whole party as a single token (one shared fog.partyCell); combat
+  // needs each hero's own x/y, which nothing has set until now.
+  for (const hero of session.party) {
+    if (!hero.alive) continue;
+    hero.x = room.fog.partyCell.x;
+    hero.y = room.fog.partyCell.y;
+  }
+  session.combat = createCombat({
+    tile: room.tile,
+    party: session.party,
+    spawns,
+    monsterData: session.content.monsters,
+    rules: session.rules,
+    rng: session.rng,
+    placement: 'inPlace',
+  });
+  session.phase = 'combat';
+  journal(session, 'Something was waiting.');
+  // The first actor may be a monster, so let the AI act before handing control over.
+  return runAiTurns(session);
+}
+
+/** @param {Session} session @param {number} severity */
+function springTrap(session, severity) {
+  const victims = selectTargets(session.party, 'random', session.rng);
+  for (const hero of victims) {
+    const dealt = damageActor(hero, trapDamageFor(hero, severity));
+    journal(session, `A trap catches ${hero.name} for ${dealt}.`);
+    if (!hero.alive) journal(session, `${hero.name} does not get up.`);
+  }
+  if (!session.party.some((h) => h.alive)) return finish(session, 'defeat');
+  return session;
+}
+
+/**
+ * The party has stepped onto the room's door: leave. Rolls the between-room event first, same
+ * cadence as before (one roll per room transition); if one fires, the party must acknowledge it
+ * before the next room resolves.
+ * @param {Session} session
+ */
+function crossDoor(session) {
   const event = rollEvent(session.rng, session.content.events);
   if (event) {
     applyEvent(session, event);
@@ -120,11 +213,10 @@ export function explore(session) {
     session.phase = 'event';
     return session;
   }
-
   return enterNextRoom(session);
 }
 
-/** Acknowledge the pending event and continue into the next room. */
+/** Acknowledge the pending event or loot and continue. */
 export function acknowledge(session) {
   if (session.phase === 'event') {
     session.pending = null;
@@ -140,59 +232,44 @@ export function acknowledge(session) {
 
 /** @param {Session} session */
 function enterNextRoom(session) {
-  if (!advance(session.dungeon)) {
-    // Already at the objective and it is cleared: the delve is over.
-    return isLastRoom(session.dungeon) ? finish(session, 'victory') : session;
-  }
-  const room = currentRoom(session.dungeon);
+  if (!advance(session.dungeon)) return session;
+  const dungeon = session.dungeon;
+  const room = currentRoom(dungeon);
   journal(session, `The party enters ${room.name}.`);
-  return resolveRoom(session);
+
+  if (room.tile.kind === 'objective') return spawnBoss(session, room);
+
+  room.fog = enterRoom(room.tile, session.rng, {
+    depthRatio: depthRatioOf(room, dungeon), party: session.party,
+  });
+  session.phase = 'explore';
+
+  if (room.forceAmbush) {
+    // Pre-empt the normal per-step roll rather than stacking on top of it — one guaranteed
+    // threat from the event, not a guaranteed one plus a second random chance at it.
+    room.fog.ambushSpent = true;
+    return spawnAmbush(session, room);
+  }
+  return session;
 }
 
-/** @param {Session} session */
-function resolveRoom(session) {
-  const room = currentRoom(session.dungeon);
-  const { encounter } = room;
-
-  if (encounter.kind === 'monsters' || encounter.kind === 'boss') {
-    session.combat = createCombat({
-      tile: room.tile,
-      party: session.party,
-      spawns: encounter.spawns ?? [],
-      monsterData: session.content.monsters,
-      rules: session.rules,
-      rng: session.rng,
-    });
-    session.phase = 'combat';
-    journal(session, encounter.kind === 'boss'
-      ? 'Something very large shifts in the dark.'
-      : 'Enemies!');
-    // The first actor may be a monster, so let the AI act before handing control over.
-    return runAiTurns(session);
-  }
-
-  if (encounter.kind === 'trap') {
-    const severity = encounter.severity ?? 1;
-    const victims = selectTargets(session.party, 'random', session.rng);
-    for (const hero of victims) {
-      const dealt = damageActor(hero, trapDamageFor(hero, severity));
-      journal(session, `A trap catches ${hero.name} for ${dealt}.`);
-      if (!hero.alive) journal(session, `${hero.name} does not get up.`);
-    }
-    room.cleared = true;
-    if (!session.party.some((h) => h.alive)) return finish(session, 'defeat');
-    session.phase = 'explore';
-    return session;
-  }
-
-  if (encounter.kind === 'treasure') {
-    room.cleared = true;
-    return grantTreasure(session, encounter.severity ?? 1);
-  }
-
-  room.cleared = true;
-  session.phase = 'explore';
-  return session;
+/**
+ * Start the guaranteed boss fight. Unlike a wandering ambush, the boss keeps the original
+ * fresh-room placement ('entry', the createCombat default) — the showdown room isn't explored.
+ * @param {Session} session @param {import('./dungeon.js').Room} room
+ */
+function spawnBoss(session, room) {
+  session.combat = createCombat({
+    tile: room.tile,
+    party: session.party,
+    spawns: room.encounter.spawns ?? [],
+    monsterData: session.content.monsters,
+    rules: session.rules,
+    rng: session.rng,
+  });
+  session.phase = 'combat';
+  journal(session, 'Something very large shifts in the dark.');
+  return runAiTurns(session);
 }
 
 /** @param {Session} session @param {number} severity */
@@ -238,20 +315,12 @@ function applyEvent(session, event) {
       if (recipient) journal(session, grantItem(recipient, item));
     }
   } else if (effect.kind === 'spawn') {
-    // A spawn event seeds extra monsters into the room the party is about to enter.
+    // Something was stirred up ahead. Rooms no longer carry a pre-rolled fight to pad, so this
+    // instead guarantees the wandering ambush in the *next* room: `enterNextRoom` checks this
+    // flag right after building that room's fog and, if set, skips the usual per-step roll and
+    // spawns immediately — the horn is answered the moment the party walks in.
     const next = session.dungeon.rooms[session.dungeon.current + 1];
-    if (next) {
-      const pool = session.content.monsters.filter((m) => (m.tier ?? 1) === 1 && m.role !== 'boss');
-      if (pool.length) {
-        const extra = session.rng.pick(pool);
-        const spawns = next.encounter.spawns ?? [];
-        const existing = spawns.find((s) => s.id === extra.id);
-        if (existing) existing.count += effect.amount ?? 1;
-        else spawns.push({ id: extra.id, count: effect.amount ?? 1 });
-        next.encounter = { kind: 'monsters', spawns };
-        next.cleared = false;
-      }
-    }
+    if (next && next.tile.kind !== 'objective') next.forceAmbush = true;
   }
 }
 
@@ -298,7 +367,15 @@ function concludeCombat(session) {
 
   const room = currentRoom(session.dungeon);
   room.cleared = true;
-  const xp = encounterXp(room.encounter.spawns ?? [], session.content.monsters);
+  // Read who was actually in the fight rather than the room's encounter record: a wandering
+  // ambush no longer carries a pre-rolled spawn list the way the boss room still does, and
+  // deriving XP from the live combatants works for both without a special case.
+  const defeated = new Map();
+  for (const actor of combat.actors) {
+    if (actor.side !== 'monster') continue;
+    defeated.set(actor.dataId, (defeated.get(actor.dataId) ?? 0) + 1);
+  }
+  const xp = encounterXp([...defeated].map(([id, count]) => ({ id, count })), session.content.monsters);
   journal(session, 'The room falls quiet.');
   for (const line of awardXp(session.party, xp)) journal(session, line);
   session.combat = null;
@@ -306,10 +383,9 @@ function concludeCombat(session) {
 
   if (room.encounter.kind === 'boss') return finish(session, 'victory');
 
-  // A cleared fight usually leaves something behind.
-  if (session.rng.next() < 0.5) {
-    return grantTreasure(session, 1 + Math.floor(room.index / 3));
-  }
+  // No bonus roll here for an ambush win: the room's cell content (placeCellContent) already
+  // scatters treasure independently, and stacking a second roll on top would just double the
+  // loot density for no reason.
   session.phase = 'explore';
   return session;
 }
@@ -387,6 +463,8 @@ export function restoreSession(snapshot, content) {
       encounter: saved.encounter,
       cleared: saved.cleared,
       visited: saved.visited,
+      fog: restoreFog(saved.fog),
+      forceAmbush: saved.forceAmbush ?? false,
     };
   });
   if (rooms.some((r) => r === null)) return null;
@@ -398,19 +476,43 @@ export function restoreSession(snapshot, content) {
     rules,
     rng: restoreRng(snapshot.rngState),
     party: /** @type {any} */ (party),
-    dungeon: { seed: snapshot.seed, rooms, current: snapshot.roomIndex, depth: rooms.length },
+    dungeon: {
+      seed: snapshot.seed, rooms, current: snapshot.roomIndex, depth: rooms.length,
+      // Never re-rolled: the theme and intensity are a mid-delve constant, exactly like the
+      // seed. Re-rolling here would also desync the restored rng stream from what actually
+      // happened.
+      corruption: snapshot.corruption,
+    },
     combat: null,
-    // A fight in progress is not restored; the party resumes at the start of that room instead.
+    // A fight in progress is not restored as-is. For a wandering ambush this needs nothing
+    // special: ambushSpent was set the instant the roll fired (see exploration.js), before
+    // combat was ever created, so the restored fog already shows it spent and the party simply
+    // resumes standing where the fight was — no second ambush can trigger there. The boss is
+    // the one real special case, since it has no fog to fall back on.
     phase: snapshot.phase === 'combat' ? 'explore' : snapshot.phase,
     gold: snapshot.gold ?? 0,
     journal: ['The delve resumes.'],
     pending: null,
   };
 
-  if (session.phase === 'explore' && !currentRoom(session.dungeon).cleared) {
-    return resolveRoom(session);
+  const room = currentRoom(session.dungeon);
+  if (session.phase === 'explore' && room.tile.kind === 'objective' && !room.cleared) {
+    return spawnBoss(session, room);
   }
   return session;
+}
+
+/** @param {any} saved @returns {import('./exploration.js').Fog | null} */
+function restoreFog(saved) {
+  if (!saved) return null;
+  return {
+    revealed: new Set(saved.revealed),
+    contentKnown: new Set(saved.contentKnown),
+    cellContent: new Map(saved.cellContent),
+    visitedCells: new Set(saved.visitedCells),
+    partyCell: saved.partyCell,
+    ambushSpent: saved.ambushSpent,
+  };
 }
 
 export { serialize, currentRoom, isLastRoom };

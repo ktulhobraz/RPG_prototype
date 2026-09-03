@@ -8,15 +8,19 @@
  */
 
 import { floorCells, isPassable } from './grid.js';
+import { rollCorruption, rollEncounterSpawns } from './corruption.js';
 
 /** @typedef {import('./rng.js').Rng} Rng */
 /** @typedef {import('./grid.js').Tile} Tile */
+/** @typedef {import('./corruption.js').Corruption} Corruption */
+/** @typedef {import('./corruption.js').CorruptionTheme} CorruptionTheme */
 
 /**
  * @typedef {object} Encounter
- * @property {'empty' | 'monsters' | 'trap' | 'treasure' | 'boss'} kind
+ * @property {'empty' | 'exploring' | 'boss'} kind   'exploring': a middle room walked cell by
+ *   cell; its ambush (if any) and its trap/treasure are per-cell content on `Room.fog`, not
+ *   pre-rolled here. 'boss' keeps its `spawns`, guaranteed and placed fresh on room entry.
  * @property {{ id: string, count: number }[]} [spawns]
- * @property {number} [severity]
  */
 
 /**
@@ -25,8 +29,15 @@ import { floorCells, isPassable } from './grid.js';
  * @property {Tile} tile
  * @property {string} name
  * @property {Encounter} encounter
- * @property {boolean} cleared
+ * @property {boolean} cleared    For a middle room: false only while an in-place ambush fight
+ *   is active in it. For the objective: false until the boss falls.
  * @property {boolean} visited
+ * @property {import('./exploration.js').Fog | null} fog   Null until the party actually walks
+ *   into this room — fog depends on the live party (Initiative-driven reveal radius), so it
+ *   can't be built at generation time the way the rest of the room can.
+ * @property {boolean} [forceAmbush]   Set at runtime by a "spawn" event on the room ahead;
+ *   guarantees that room's ambush fires the moment it's entered, pre-empting the usual per-step
+ *   roll rather than stacking on top of it.
  */
 
 /**
@@ -35,73 +46,35 @@ import { floorCells, isPassable } from './grid.js';
  * @property {Room[]} rooms
  * @property {number} current
  * @property {number} depth
+ * @property {Corruption} corruption   Fixed for the whole delve; see corruption.js.
  */
 
-/** Chance weights for what a non-objective room holds. */
-const ENCOUNTER_WEIGHTS = [
-  { kind: 'monsters', weight: 55 },
-  { kind: 'trap', weight: 15 },
-  { kind: 'treasure', weight: 15 },
-  { kind: 'empty', weight: 15 },
-];
-
 /**
- * @param {Rng} rng
- * @param {{weight: number}[]} table
- */
-function weightedPick(rng, table) {
-  const total = table.reduce((sum, entry) => sum + entry.weight, 0);
-  let roll = rng.next() * total;
-  for (const entry of table) {
-    roll -= entry.weight;
-    if (roll <= 0) return entry;
-  }
-  return table[table.length - 1];
-}
-
-/**
- * Build the monster group for a room. Difficulty rises with depth, so the last rooms before the
- * objective are meaningfully harder than the first.
+ * A room's position in the delve as a 0 (entrance) to 1 (objective) ratio — the same formula
+ * that used to be computed inline during generation, exposed so exploration code can derive it
+ * for a room it's resolving live (ambush size, cell-content severity) without the caller having
+ * to know how the deck was built.
  *
- * @param {any[]} monsters
- * @param {Rng} rng
- * @param {number} depthRatio  0 at the entrance, 1 at the objective.
- * @param {number} partySize
- * @returns {{ id: string, count: number }[]}
+ * @param {Room} room
+ * @param {Dungeon} dungeon
+ * @returns {number}
  */
-function rollSpawns(monsters, rng, depthRatio, partySize) {
-  const tierCap = depthRatio > 0.6 ? 2 : 1;
-  const pool = monsters.filter((m) => (m.tier ?? 1) <= tierCap && m.role !== 'boss');
-  if (pool.length === 0) return [];
-
-  // Budget scales with party size so a four-hero party is not swamped by a two-hero encounter.
-  // The coefficients are set by simulation, not taste: see tests/sim.js and docs/design/balance.md.
-  const budget = Math.max(2, Math.round(partySize * (0.5 + depthRatio * 0.6)));
-  /** @type {Map<string, number>} */
-  const groups = new Map();
-  let spent = 0;
-  let guard = 0;
-
-  while (spent < budget && guard++ < 40) {
-    const monster = rng.pick(pool);
-    const cost = (monster.tier ?? 1) >= 2 ? 2 : 1;
-    if (spent + cost > budget + 1) break;
-    groups.set(monster.id, (groups.get(monster.id) ?? 0) + 1);
-    spent += cost;
-  }
-  return [...groups].map(([id, count]) => ({ id, count }));
-}
+export const depthRatioOf = (room, dungeon) => room.index / (dungeon.depth - 1);
 
 /**
  * @param {object} args
  * @param {any[]} args.rooms      Room tile records from data.
  * @param {any[]} args.monsters   Monster records from data.
+ * @param {CorruptionTheme[]} args.corruptions   Corruption theme records from data.
  * @param {Rng} args.rng
  * @param {number} [args.depth]   Number of rooms including entrance and objective.
  * @param {number} [args.partySize]
  * @returns {Dungeon}
  */
-export function createDungeon({ rooms, monsters, rng, depth = 8, partySize = 4 }) {
+export function createDungeon({ rooms, monsters, corruptions, rng, depth = 8, partySize = 4 }) {
+  const corruption = rollCorruption(rng, corruptions);
+  const theme = corruptions.find((t) => t.id === corruption.themeId);
+
   const entranceTile = rooms.find((r) => r.kind === 'entrance');
   const objectiveTile = rooms.find((r) => r.kind === 'objective');
   if (!entranceTile || !objectiveTile) {
@@ -133,30 +106,21 @@ export function createDungeon({ rooms, monsters, rng, depth = 8, partySize = 4 }
     encounter: { kind: 'empty' },
     cleared: true,
     visited: true,
+    fog: null,
   });
 
-  drawn.forEach((tile, i) => {
-    const depthRatio = (i + 1) / (middleCount + 1);
-    const pick = weightedPick(rng, ENCOUNTER_WEIGHTS);
-    /** @type {Encounter} */
-    let encounter;
-    if (pick.kind === 'monsters') {
-      const spawns = rollSpawns(monsters, rng, depthRatio, partySize);
-      encounter = spawns.length ? { kind: 'monsters', spawns } : { kind: 'empty' };
-    } else if (pick.kind === 'trap') {
-      encounter = { kind: 'trap', severity: 1 + Math.round(depthRatio * 2) };
-    } else if (pick.kind === 'treasure') {
-      encounter = { kind: 'treasure', severity: 1 + Math.round(depthRatio * 2) };
-    } else {
-      encounter = { kind: 'empty' };
-    }
+  // Middle rooms carry nothing pre-rolled: whether anything happens here, and what, is decided
+  // step by step as the party actually walks the tile (see exploration.js). `cleared` starts
+  // true — nothing blocks the door a priori — and only drops while an ambush fight is live.
+  drawn.forEach((tile) => {
     built.push({
-      index: i + 1,
+      index: built.length,
       tile,
       name: tile.name,
-      encounter,
-      cleared: encounter.kind !== 'monsters',
+      encounter: { kind: 'exploring' },
+      cleared: true,
       visited: false,
+      fog: null,
     });
   });
 
@@ -169,15 +133,21 @@ export function createDungeon({ rooms, monsters, rng, depth = 8, partySize = 4 }
       spawns: [
         { id: boss.id, count: 1 },
         // A small escort only. The boss should be the fight; a full second encounter stacked on
-        // top of it just ends delves that were otherwise going well.
-        ...rollSpawns(monsters, rng, 0.4, 1),
+        // top of it just ends delves that were otherwise going well. Themed like everything
+        // else in this delve, so the escort doesn't clash with what led up to it.
+        ...rollEncounterSpawns(monsters, rng, {
+          depthRatio: 0.4, partySize: 1, intensity: corruption.intensity, theme,
+        }),
       ],
     },
     cleared: false,
     visited: false,
+    fog: null,
   });
 
-  return { seed: String(rng.state()), rooms: built, current: 0, depth: built.length };
+  return {
+    seed: String(rng.state()), rooms: built, current: 0, depth: built.length, corruption,
+  };
 }
 
 /** @param {Dungeon} dungeon */
@@ -187,8 +157,10 @@ export const currentRoom = (dungeon) => dungeon.rooms[dungeon.current];
 export const isLastRoom = (dungeon) => dungeon.current >= dungeon.rooms.length - 1;
 
 /**
- * Advance to the next room. Refuses to move on while monsters remain, which is what makes the
- * dungeon a sequence of committed fights rather than a corridor to sprint down.
+ * Advance to the next room. Refuses to move on while the current room is uncleared — in
+ * practice, only while an in-place ambush fight is live in it (`state.js`'s `step` never calls
+ * this mid-fight anyway, since crossing the door is only reachable from phase 'explore', but
+ * the guard stays as the source of truth).
  * @param {Dungeon} dungeon
  * @returns {boolean} whether the party moved.
  */

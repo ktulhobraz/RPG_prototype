@@ -9,7 +9,7 @@
 import { createActor, damageActor, healActor } from './entities.js';
 import { entryCells } from './dungeon.js';
 import {
-  distance, isAdjacent, reachable, findPath, hasLineOfSight, cellAt, HAZARD,
+  distance, isAdjacent, reachable, findPath, hasLineOfSight, cellAt, HAZARD, floorCells,
 } from './grid.js';
 import {
   attackModifier, extraAttacks, onTurnStart, activeOptions, spendUse, hasAbility,
@@ -42,6 +42,58 @@ const occupied = (actors) =>
   new Set(actors.filter((a) => a.alive).map((a) => `${a.x},${a.y}`));
 
 /**
+ * Nearest free floor cells to an arbitrary point, closest first. Exploration tracks the whole
+ * party as a single token (one shared cell), so an in-place ambush needs to spread the heroes
+ * out from that one cell into distinct cells before combat can place anyone else — this is that
+ * spread, generic enough to anchor anywhere rather than only at a room's door like `entryCells`.
+ *
+ * @param {Tile} tile
+ * @param {{x: number, y: number}} anchor
+ * @param {number} count
+ * @param {Set<string>} [occupiedCells]
+ * @returns {{x: number, y: number}[]}
+ */
+export function fanOutCells(tile, anchor, count, occupiedCells = new Set()) {
+  return floorCells(tile)
+    .filter((c) => !occupiedCells.has(`${c.x},${c.y}`))
+    .map((c) => ({ c, d: distance(anchor, c) }))
+    .sort((a, b) => a.d - b.d || a.c.y - b.c.y || a.c.x - b.c.x)
+    .map((entry) => entry.c)
+    .slice(0, count);
+}
+
+/** Monsters ambushing an already-standing party keep their distance, at least this many steps. */
+export const AMBUSH_MIN_DISTANCE = 2;
+
+/**
+ * Where a wandering ambush spawns its monsters: nearest free floor to the party's centroid,
+ * but never closer than `AMBUSH_MIN_DISTANCE` to any hero — an ambush closes in, it doesn't
+ * spawn already swinging. Same deterministic distance-then-coordinate sort as `entryCells`, so
+ * a given seed and board state always lays out the same fight.
+ *
+ * @param {Tile} tile
+ * @param {number} count
+ * @param {{x: number, y: number}[]} partyCells
+ * @param {Set<string>} [occupiedCells]
+ * @returns {{x: number, y: number}[]}
+ */
+export function ambushCells(tile, count, partyCells, occupiedCells = new Set()) {
+  const cx = partyCells.reduce((sum, c) => sum + c.x, 0) / partyCells.length;
+  const cy = partyCells.reduce((sum, c) => sum + c.y, 0) / partyCells.length;
+
+  const candidates = floorCells(tile).filter((c) => {
+    if (occupiedCells.has(`${c.x},${c.y}`)) return false;
+    return partyCells.every((p) => distance(p, c) >= AMBUSH_MIN_DISTANCE);
+  });
+
+  return candidates
+    .map((c) => ({ c, d: Math.abs(c.x - cx) + Math.abs(c.y - cy) }))
+    .sort((a, b) => a.d - b.d || a.c.y - b.c.y || a.c.x - b.c.x)
+    .map((entry) => entry.c)
+    .slice(0, count);
+}
+
+/**
  * Build a combat from a room encounter.
  *
  * @param {object} args
@@ -51,17 +103,31 @@ const occupied = (actors) =>
  * @param {any[]} args.monsterData
  * @param {RuleSystem} args.rules
  * @param {Rng} args.rng
+ * @param {'entry' | 'inPlace'} [args.placement]  'entry' (default): heroes and monsters are
+ *   both freshly placed near opposite sides of the room, exactly as a room-entry fight always
+ *   has been — used for the boss. 'inPlace': heroes keep whatever x/y they're already standing
+ *   at (a wandering ambush mid-room) and monsters spawn via `ambushCells` instead.
  * @returns {Combat}
  */
-export function createCombat({ tile, party, spawns, monsterData, rules, rng }) {
+export function createCombat({ tile, party, spawns, monsterData, rules, rng, placement = 'entry' }) {
   const heroes = party.filter((hero) => hero.alive);
   const taken = new Set();
 
-  entryCells(tile, heroes.length, 'near').forEach((cell, i) => {
-    heroes[i].x = cell.x;
-    heroes[i].y = cell.y;
-    taken.add(`${cell.x},${cell.y}`);
-  });
+  if (placement === 'entry') {
+    entryCells(tile, heroes.length, 'near').forEach((cell, i) => {
+      heroes[i].x = cell.x;
+      heroes[i].y = cell.y;
+    });
+  } else if (heroes.length) {
+    // 'inPlace': the caller sets every hero to the same shared exploration cell, so they need
+    // spreading into distinct cells the same way a fresh room entry always has distinct cells —
+    // anchored at that shared cell rather than the door.
+    fanOutCells(tile, heroes[0], heroes.length).forEach((cell, i) => {
+      heroes[i].x = cell.x;
+      heroes[i].y = cell.y;
+    });
+  }
+  for (const hero of heroes) taken.add(`${hero.x},${hero.y}`);
 
   /** @type {Actor[]} */
   const monsters = [];
@@ -73,7 +139,10 @@ export function createCombat({ tile, party, spawns, monsterData, rules, rng }) {
       monsters.push(createActor(data, rules, { side: 'monster', id: `${spawn.id}#${counter++}` }));
     }
   }
-  entryCells(tile, monsters.length, 'far', taken).forEach((cell, i) => {
+  const monsterCells = placement === 'inPlace'
+    ? ambushCells(tile, monsters.length, heroes, taken)
+    : entryCells(tile, monsters.length, 'far', taken);
+  monsterCells.forEach((cell, i) => {
     monsters[i].x = cell.x;
     monsters[i].y = cell.y;
     taken.add(`${cell.x},${cell.y}`);
