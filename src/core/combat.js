@@ -311,8 +311,10 @@ export function movementOptions(combat) {
 
 /**
  * Move the active actor along the shortest path, spending movement per cell.
- * Leaving an adjacent enemy's reach provokes one immediate melee strike from that enemy unless
- * the mover has the `disengage` ability. Each enemy can react at most once during one move.
+ * Every movement step that starts adjacent to an enemy provokes one immediate melee strike from
+ * that enemy unless the mover has the `disengage` ability. The step provokes even when the mover
+ * remains adjacent after moving, which prevents free circling and slipping between engaged foes.
+ * Each enemy can react at most once during one move.
  * Hazard cells retain their existing behaviour: only the destination hazard deals its wound.
  *
  * @param {Combat} combat @param {{x:number,y:number}} to
@@ -334,12 +336,10 @@ export function moveTo(combat, to) {
   const reacted = new Set();
   for (const step of path) {
     if (!safeDisengage) {
-      const provokers = adjacentEnemies(combat, actor).filter(
-        (enemy) => !reacted.has(enemy.id) && !isAdjacent(step, enemy),
-      );
+      const provokers = adjacentEnemies(combat, actor).filter((enemy) => !reacted.has(enemy.id));
       for (const enemy of provokers) {
         reacted.add(enemy.id);
-        pushLog(combat, `${actor.name} breaks away from ${enemy.name}, provoking an attack.`);
+        pushLog(combat, `${actor.name} moves within ${enemy.name}'s reach, provoking an attack.`);
         resolveStrike(combat, enemy, actor, 'melee', combat.rules, combat.rng);
         if (!actor.alive) {
           checkEnd(combat);
