@@ -47,8 +47,8 @@ test('ambushCells placement is deterministic for a given board state', () => {
 test("createCombat placement:'entry' (default) still places heroes freshly, unchanged", () => {
   const party = [createActor(heroData, RULES, { side: 'hero', id: 'h1' })];
   party[0].x = 99;
-  party[0].y = 99; // garbage position from a previous fight — 'entry' must overwrite it
-  const combat = createCombat({
+  party[0].y = 99;
+  createCombat({
     tile: middleTile, party, spawns: [{ id: content.monsters[0].id, count: 1 }],
     monsterData: content.monsters, rules: RULES, rng: createRng('entry'),
   });
@@ -72,10 +72,6 @@ test("createCombat placement:'inPlace' leaves heroes exactly where they stood", 
 });
 
 test("createCombat placement:'inPlace' fans a party sharing one cell into distinct cells", () => {
-  // Exploration tracks the whole party as a single token, so every hero arrives here on the
-  // exact same cell — 'inPlace' must spread them out rather than stacking them in combat.
-  // (A real fog.partyCell is always a floor cell; picked from the tile rather than guessed,
-  // since this tile has interior pillars and a hardcoded coordinate could land on one.)
   const shared = floorCells(middleTile)[0];
   const party = content.heroes.slice(0, 3).map((data, i) =>
     createActor(data, RULES, { side: 'hero', id: `h${i}` }));
