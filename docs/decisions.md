@@ -32,6 +32,7 @@ Superseded entries are kept, not deleted, so the history of direction changes st
 | D-32 | **Passive rest happens at the room exit** | Each injured living hero heals `d6 + (base Toughness - 3)`, minimum 1. Equipment Toughness does not modify recovery |
 | D-33 | **Generated prototype art is split by UI purpose**, not one universal atlas | Portraits serve cards/details; compact hero/monster tokens serve the board; terrain and item art use separate row atlases. Unmatched content keeps its glyph instead of being renamed to fit available art |
 | D-34 | **Test Arena is an isolated development harness, not a game mode** | One selected hero fights one monster at a time on `test_arena`; each matchup resets the hero to baseline. No dungeon progress, loot, XP or save writes are involved |
+| D-35 | **Engagement and advantage are baseline combat rules** | Leaving adjacent enemies provokes one reaction strike per enemy unless an ability permits safe disengage. Surrounding (2+ adjacent enemies) and kill momentum grant `+1` attack modifiers; kill momentum ends on the attacker's first miss or when an enemy hits it |
 
 ## Superseded
 
