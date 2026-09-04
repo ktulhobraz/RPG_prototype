@@ -35,6 +35,7 @@ export const MAX_RANGE = 8;
  * @property {string[]} log
  * @property {'active' | 'won' | 'lost'} status
  * @property {import('./rng.js').Rng} rng  Held so turn-start effects can roll without the caller.
+ * @property {RuleSystem} rules      Held for reactions that happen outside the active actor's action.
  */
 
 /** @param {Actor[]} actors @returns {Set<string>} */
@@ -151,6 +152,8 @@ export function createCombat({ tile, party, spawns, monsterData, rules, rng, pla
   // Monsters that found no free cell cannot take part; dropping them beats stacking them.
   const placed = monsters.filter((m) => taken.has(`${m.x},${m.y}`) && (m.x || m.y));
   const actors = [...heroes, ...(placed.length ? placed : monsters.slice(0, 1))];
+  // Kill advantage is a combat-state effect. Heroes persist between rooms, so explicitly clear it.
+  for (const actor of actors) actor.momentum = false;
 
   /** @type {Combat} */
   const combat = {
@@ -164,6 +167,7 @@ export function createCombat({ tile, party, spawns, monsterData, rules, rng, pla
     log: [],
     status: 'active',
     rng,
+    rules,
   };
   const foes = actors.filter((a) => a.side === 'monster').length;
   pushLog(combat, `${foes} ${foes === 1 ? 'enemy blocks' : 'enemies block'} the way.`);
@@ -182,6 +186,74 @@ export function pushLog(combat, line) {
   combat.log.push(line);
   // The log is rendered on a phone; keeping it short avoids unbounded DOM growth.
   if (combat.log.length > 60) combat.log.shift();
+}
+
+/** Living opposing creatures currently adjacent to an actor. */
+export function adjacentEnemies(combat, actor) {
+  return combat.actors.filter(
+    (candidate) => candidate.alive && candidate.side !== actor.side && isAdjacent(actor, candidate),
+  );
+}
+
+/**
+ * Baseline combat advantage, separate from ability-specific modifiers.
+ * +1 for kill momentum; +1 to an adjacent attacker when the defender has at least two enemies
+ * next to it. These sources stack with each other and with passive ability modifiers.
+ *
+ * @param {Combat} combat @param {Actor} attacker @param {Actor} defender
+ * @param {'melee'|'ranged'} kind
+ */
+export function combatAdvantageModifier(combat, attacker, defender, kind) {
+  let modifier = attacker.momentum ? 1 : 0;
+  if (kind === 'melee' && isAdjacent(attacker, defender) && adjacentEnemies(combat, defender).length >= 2) {
+    modifier += 1;
+  }
+  return modifier;
+}
+
+/** @param {Combat} combat @param {Actor} attacker @param {Actor} defender @param {'melee'|'ranged'} kind */
+function attackContext(combat, attacker, defender, kind) {
+  const ctx = {
+    kind,
+    rangePenalty: kind === 'ranged' ? rangePenalty(distance(attacker, defender)) : 0,
+    modifier: 0,
+  };
+  ctx.modifier = attackModifier({ attacker, defender, ctx, combat })
+    + combatAdvantageModifier(combat, attacker, defender, kind);
+  return ctx;
+}
+
+/**
+ * Resolve one strike without spending the active actor's action. Used by normal attacks,
+ * attack abilities and opportunity attacks so advantage state changes in one place.
+ *
+ * @param {Combat} combat @param {Actor} attacker @param {Actor} defender
+ * @param {'melee'|'ranged'} kind @param {RuleSystem} rules @param {Rng} rng
+ * @param {string} [prefix]
+ */
+function resolveStrike(combat, attacker, defender, kind, rules, rng, prefix) {
+  const result = rules.resolveAttack(attacker, defender, attackContext(combat, attacker, defender, kind), rng);
+  if (result.damage > 0) damageActor(defender, result.damage);
+  const description = rules.describe(attacker, defender, result);
+  pushLog(combat, prefix ? `${prefix}: ${description}` : description);
+
+  if (!result.hit && attacker.momentum) {
+    attacker.momentum = false;
+    pushLog(combat, `${attacker.name} loses the advantage after missing.`);
+  }
+  // Being hit breaks kill momentum even when Toughness reduces the resulting damage to zero.
+  if (result.hit && defender.alive && defender.momentum) {
+    defender.momentum = false;
+    pushLog(combat, `${defender.name} loses the advantage after being hit.`);
+  }
+  if (!defender.alive) {
+    pushLog(combat, `${defender.name} falls.`);
+    if (!attacker.momentum) {
+      attacker.momentum = true;
+      pushLog(combat, `${attacker.name} gains the advantage from the kill.`);
+    }
+  }
+  return result;
 }
 
 /** @param {Combat} combat */
@@ -239,10 +311,14 @@ export function movementOptions(combat) {
 
 /**
  * Move the active actor along the shortest path, spending movement per cell.
- * Hazard cells cost the mover a wound, which is what makes the flooded rooms mean something.
+ * Every movement step that starts adjacent to an enemy provokes one immediate melee strike from
+ * that enemy unless the mover has the `disengage` ability. The step provokes even when the mover
+ * remains adjacent after moving, which prevents free circling and slipping between engaged foes.
+ * Each enemy can react at most once during one move.
+ * Hazard cells retain their existing behaviour: only the destination hazard deals its wound.
  *
  * @param {Combat} combat @param {{x:number,y:number}} to
- * @returns {boolean} whether the move happened.
+ * @returns {boolean} whether the move was legal and began resolving.
  */
 export function moveTo(combat, to) {
   const actor = activeActor(combat);
@@ -256,9 +332,25 @@ export function moveTo(combat, to) {
   const path = findPath(combat.tile, actor, to, blocked);
   if (!path) return false;
 
-  actor.x = to.x;
-  actor.y = to.y;
-  combat.movementLeft -= cost;
+  const safeDisengage = hasAbility(actor, 'disengage');
+  const reacted = new Set();
+  for (const step of path) {
+    if (!safeDisengage) {
+      const provokers = adjacentEnemies(combat, actor).filter((enemy) => !reacted.has(enemy.id));
+      for (const enemy of provokers) {
+        reacted.add(enemy.id);
+        pushLog(combat, `${actor.name} moves within ${enemy.name}'s reach, provoking an attack.`);
+        resolveStrike(combat, enemy, actor, 'melee', combat.rules, combat.rng);
+        if (!actor.alive) {
+          checkEnd(combat);
+          return true;
+        }
+      }
+    }
+    actor.x = step.x;
+    actor.y = step.y;
+    combat.movementLeft = Math.max(0, combat.movementLeft - 1);
+  }
 
   if (cellAt(combat.tile, to.x, to.y) === HAZARD) {
     const dealt = damageActor(actor, 1);
@@ -312,20 +404,9 @@ export function attack(combat, target, kind, rules, rng) {
   const legal = kind === 'melee' ? options.melee : options.ranged;
   if (!legal.some((t) => t.id === target.id)) return false;
 
-  const ctx = {
-    kind,
-    rangePenalty: kind === 'ranged' ? rangePenalty(distance(actor, target)) : 0,
-    modifier: 0,
-  };
-  // Passive abilities adjust the roll; they are read here so the rule systems stay unaware of them.
-  ctx.modifier = attackModifier({ attacker: actor, defender: target, ctx, combat });
-
   const swings = Math.max(1, actor.canon.attacks) + extraAttacks(actor, combat);
   for (let i = 0; i < swings && target.alive; i++) {
-    const result = rules.resolveAttack(actor, target, ctx, rng);
-    if (result.damage > 0) damageActor(target, result.damage);
-    pushLog(combat, rules.describe(actor, target, result));
-    if (!target.alive) pushLog(combat, `${target.name} falls.`);
+    resolveStrike(combat, actor, target, kind, rules, rng);
   }
 
   combat.hasActed = true;
@@ -365,11 +446,7 @@ export function useAbility(combat, abilityId, target, rules, rng) {
     pushLog(combat, ability.apply(actor, target, rng));
   } else if (ability.kind === 'attack') {
     // A magical strike still resolves through the rule system, so one place owns the dice.
-    const ctx = { kind: 'ranged', rangePenalty: 0, modifier: 0 };
-    const result = rules.resolveAttack(actor, target, ctx, rng);
-    if (result.damage > 0) damageActor(target, result.damage);
-    pushLog(combat, `${ability.name}: ${rules.describe(actor, target, result)}`);
-    if (!target.alive) pushLog(combat, `${target.name} falls.`);
+    resolveStrike(combat, actor, target, 'ranged', rules, rng, ability.name);
   } else {
     return false;
   }
@@ -431,13 +508,13 @@ export function runMonsterTurn(combat, rules, rng) {
     const options = movementOptions(combat);
     let best = null;
     let bestDistance = distance(actor, target);
-    for (const [key, cost] of options) {
+    for (const [key, moveCost] of options) {
       const [x, y] = key.split(',').map(Number);
       const d = distance({ x, y }, target);
       // Tie-break on movement cost, then coordinates, so the same board always plays the same.
-      if (d < bestDistance || (d === bestDistance && best && cost < best.cost)) {
+      if (d < bestDistance || (d === bestDistance && best && moveCost < best.cost)) {
         bestDistance = d;
-        best = { x, y, cost };
+        best = { x, y, cost: moveCost };
       }
     }
     if (best) moveTo(combat, best);

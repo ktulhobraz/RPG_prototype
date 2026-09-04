@@ -21,7 +21,8 @@ import { normalizeProfile, applyMods } from './profile.js';
 /**
  * @typedef {Combatant & {
  *   dataId:string, glyph:string, role:string, abilities:string[], x:number, y:number,
- *   alive:boolean, items:any[], xp:number, level:number, baseCanon:CanonProfile
+ *   alive:boolean, items:any[], xp:number, level:number, baseCanon:CanonProfile,
+ *   momentum:boolean
  * }} Actor
  */
 
@@ -50,6 +51,7 @@ export function createActor(data, rules, options = {}) {
     items: [],
     xp: 0,
     level: 1,
+    momentum: false,
   };
 }
 

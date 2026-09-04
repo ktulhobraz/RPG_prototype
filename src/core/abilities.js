@@ -60,6 +60,20 @@ export const ABILITIES = {
     attackModifier: ({ attacker }) => (isWounded(attacker) ? 1 : 0),
   },
 
+  surrounded_fury: {
+    id: 'surrounded_fury',
+    name: 'Surrounded Fury',
+    description: 'Thrives in a press of enemies: +1 melee attack modifier with 2 adjacent enemies, +2 with 3 or more.',
+    kind: 'passive',
+    attackModifier: ({ attacker, ctx, combat }) => {
+      if (!combat || ctx.kind !== 'melee') return 0;
+      const adjacent = combat.actors.filter(
+        (a) => a.alive && a.side !== attacker.side && isAdjacent(attacker, a),
+      ).length;
+      return Math.min(2, Math.max(0, adjacent - 1));
+    },
+  },
+
   fervour: {
     id: 'fervour',
     name: 'Fervour',
@@ -88,6 +102,13 @@ export const ABILITIES = {
       );
       return engaged ? 1 : 0;
     },
+  },
+
+  disengage: {
+    id: 'disengage',
+    name: 'Disengage',
+    description: 'Can move while adjacent to enemies without provoking opportunity attacks.',
+    kind: 'passive',
   },
 
   keen_eye: {

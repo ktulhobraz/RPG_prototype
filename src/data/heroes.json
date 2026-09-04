@@ -16,7 +16,7 @@
     "glyph": "S",
     "blurb": "Seeks a worthy death and keeps failing to find one.",
     "profile": { "ws": 5, "bs": 2, "str": 4, "tou": 5, "wounds": 12, "init": 2, "attacks": 2, "move": 3 },
-    "abilities": ["frenzy"],
+    "abilities": ["frenzy", "surrounded_fury"],
     "startingItems": ["twin_axes"]
   },
   {
