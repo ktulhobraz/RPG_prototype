@@ -40,9 +40,13 @@ Adjacency is four-way, matching movement: a creature is engaged with every livin
 orthogonally neighbouring cell.
 
 - A creature may still move while engaged.
-- When a movement step leaves an enemy's adjacency, that enemy immediately makes one melee
-  **opportunity attack** before the mover enters the next cell.
-- Every enemy whose adjacency is broken may react once during that movement.
+- Every movement step that **starts adjacent to an enemy** immediately provokes one melee
+  **opportunity attack** from that enemy before the mover enters the next cell.
+- The reaction happens even when the destination cell remains adjacent to the same enemy. Circling
+  around an engaged target is therefore not free movement.
+- A newly encountered enemy can react on a later step of the same move if that later step starts
+  adjacent to it.
+- Each enemy may make at most one opportunity attack during a single move action.
 - Opportunity attacks do not consume the reacting creature's normal action or attacks-per-turn.
 - If an opportunity attack kills the mover, movement stops on the last cell it successfully reached.
 - The passive `disengage` ability suppresses these opportunity attacks. The hook exists for future
@@ -69,6 +73,18 @@ rest of the current combat until either of these happens:
 A hit removes kill advantage even when Toughness reduces its damage to zero. Kill advantage does
 not stack with itself, but it does stack with surrounding advantage and existing ability modifiers.
 Starting a new combat clears it.
+
+### Slayer: Surrounded Fury
+
+`Oathbound Slayer` has the passive `surrounded_fury`. It rewards fighting inside a crowd rather
+than escaping it:
+
+- 0-1 adjacent living enemies: `+0` melee attack modifier;
+- 2 adjacent living enemies: `+1`;
+- 3 or more adjacent living enemies: `+2`.
+
+The bonus is capped at `+2` because the d6 target number is already clamped to 2+ through 6+.
+`Surrounded Fury` stacks with Frenzy, surrounding advantage against the target, and kill advantage.
 
 ## Contract
 
