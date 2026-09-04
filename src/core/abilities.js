@@ -90,6 +90,13 @@ export const ABILITIES = {
     },
   },
 
+  disengage: {
+    id: 'disengage',
+    name: 'Disengage',
+    description: 'Can leave an adjacent enemy without provoking an opportunity attack.',
+    kind: 'passive',
+  },
+
   keen_eye: {
     id: 'keen_eye',
     name: 'Keen Eye',
