@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createRng } from '../src/core/rng.js';
 import { RULES } from '../src/core/rules/index.js';
 import { createActor } from '../src/core/entities.js';
+import { attackModifier } from '../src/core/abilities.js';
 import { distance } from '../src/core/grid.js';
 import {
   createCombat, ambushCells, AMBUSH_MIN_DISTANCE, activeActor, moveTo, attack,
@@ -164,7 +165,24 @@ test('leaving engagement provokes one immediate strike from each adjacent enemy'
   assert.equal(combat.hasActed, false, 'opportunity strikes do not spend the mover or reactor action');
 });
 
-test('Disengage leaves engagement without an opportunity attack', () => {
+test('moving while remaining adjacent still provokes the engaged enemy', () => {
+  const hero = fighter('hero', 'hero');
+  const enemy = fighter('enemy', 'monster');
+  hero.x = 2; hero.y = 2;
+  enemy.x = 2; enemy.y = 1;
+  const calls = [];
+  const rules = scriptedRules([
+    { hit: true, damage: 1, crit: false, fumble: false, detail: 'hit' },
+  ], calls);
+  const combat = manualCombat([hero, enemy], rules);
+
+  assert.equal(moveTo(combat, { x: 1, y: 2 }), true);
+  assert.equal(calls.length, 1, 'circling inside engagement must provoke once');
+  assert.equal(calls[0].attacker, 'enemy');
+  assert.deepEqual({ x: hero.x, y: hero.y }, { x: 1, y: 2 });
+});
+
+test('Disengage allows movement inside or out of engagement without an opportunity attack', () => {
   const hero = fighter('hero', 'hero', ['disengage']);
   const enemy = fighter('enemy', 'monster');
   hero.x = 2; hero.y = 2;
@@ -173,9 +191,9 @@ test('Disengage leaves engagement without an opportunity attack', () => {
   const rules = scriptedRules([], calls);
   const combat = manualCombat([hero, enemy], rules);
 
-  assert.equal(moveTo(combat, { x: 3, y: 2 }), true);
+  assert.equal(moveTo(combat, { x: 1, y: 2 }), true);
   assert.equal(calls.length, 0);
-  assert.deepEqual({ x: hero.x, y: hero.y }, { x: 3, y: 2 });
+  assert.deepEqual({ x: hero.x, y: hero.y }, { x: 1, y: 2 });
 });
 
 test('two adjacent enemies grant +1 melee advantage against the surrounded target', () => {
@@ -249,4 +267,27 @@ test('starting a new combat clears kill momentum carried by a persistent hero ac
     monsterData: content.monsters, rules: RULES, rng: createRng('momentum-reset'),
   });
   assert.equal(hero.momentum, false);
+});
+
+test('Slayer Surrounded Fury scales with adjacent enemies and caps at +2', () => {
+  const slayerData = content.heroes.find((hero) => hero.id === 'slayer');
+  assert.ok(slayerData?.abilities.includes('surrounded_fury'));
+  const slayer = createActor(slayerData, RULES, { side: 'hero', id: 'slayer' });
+  const first = fighter('first', 'monster');
+  const second = fighter('second', 'monster');
+  const third = fighter('third', 'monster');
+  slayer.x = 2; slayer.y = 2;
+  first.x = 1; first.y = 2;
+  second.x = 2; second.y = 1;
+  third.x = 3; third.y = 2;
+  const combat = manualCombat([slayer, first, second, third]);
+  const ctx = { kind: 'melee', rangePenalty: 0, modifier: 0 };
+
+  second.alive = false;
+  third.alive = false;
+  assert.equal(attackModifier({ attacker: slayer, defender: first, ctx, combat }), 0);
+  second.alive = true;
+  assert.equal(attackModifier({ attacker: slayer, defender: first, ctx, combat }), 1);
+  third.alive = true;
+  assert.equal(attackModifier({ attacker: slayer, defender: first, ctx, combat }), 2);
 });
